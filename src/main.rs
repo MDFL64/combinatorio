@@ -6,9 +6,11 @@ use std::iter::Peekable;
 
 fn main() {
     let source = std::fs::read_to_string("test.c8r").expect("failed to read file");
-    parse(&source);
+    let results = parse(&source);
+    println!("{:#?}",results);
 }
 
+#[derive(Debug)]
 struct Module<'a> {
     name: &'a str,
     arg_names: Vec<&'a str>,
@@ -40,13 +42,13 @@ enum Statement<'a> {
     Output(Vec<Expr<'a>>)
 }
 
-struct Parser<'a,'i> {
-    tokens: Peekable<std::slice::Iter<'i,LexToken<'a>>>
+struct Parser<'a> {
+    lexer: Peekable<Lexer<'a>>
 }
 
-impl<'a,'i> Parser<'a,'i> {
-    fn new(tokens: std::slice::Iter<'i,LexToken<'a>>) -> Self {
-        Self{tokens: tokens.peekable()}
+impl<'a> Parser<'a> {
+    fn new(lexer: Lexer<'a>) -> Self {
+        Self{lexer: lexer.peekable()}
     }
 
     fn take(&mut self, tok: LexToken) {
@@ -75,27 +77,22 @@ impl<'a,'i> Parser<'a,'i> {
     }
 
     fn next(&mut self) -> LexToken<'a> {
-        *self.tokens.next().expect("Expected token, found EOF.")
+        self.lexer.next().expect("Expected token, found EOF.")
     }
 
     fn peek(&mut self) -> LexToken<'a> {
-        **self.tokens.peek().expect("Expected token, found EOF.")
+        *self.lexer.peek().expect("Expected token, found EOF.")
     }
 
     fn is_eof(&mut self) -> bool {
-        self.tokens.peek().is_none()   
+        self.lexer.peek().is_none()   
     }
 }
 
 fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
 
     let lexer = Lexer::new(source);
-
-    // Just dump all the tokens into a list.
-    // It might be considered cleaner to lex and parse simultaneously but I don't care.
-    let tokens: Vec<LexToken<'a>> = lexer.collect();
-
-    let mut parser = Parser::new(tokens.iter());
+    let mut parser = Parser::new(lexer);
 
     // Module declaration
     let mut modules = Vec::new();
@@ -137,7 +134,7 @@ fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
     modules
 }
 
-fn parse_stmt<'a,'i>(parser: &mut Parser<'a,'i>) -> Statement<'a> {
+fn parse_stmt<'a>(parser: &mut Parser<'a>) -> Statement<'a> {
     let tok = parser.next();
     match tok {
         LexToken::KeyOutput => {
@@ -158,7 +155,7 @@ fn parse_stmt<'a,'i>(parser: &mut Parser<'a,'i>) -> Statement<'a> {
     }
 }
 
-fn parse_expr<'a,'i>(parser: &mut Parser<'a,'i>) -> Expr<'a> {
+fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
 
     let mut expr_stack: Vec<Expr> = Vec::new();
     let mut op_stack: Vec<BinOp> = Vec::new();
@@ -207,7 +204,7 @@ fn parse_expr<'a,'i>(parser: &mut Parser<'a,'i>) -> Expr<'a> {
     expr_stack.pop().unwrap()
 }
 
-fn parse_leaf<'a,'i>(parser: &mut Parser<'a,'i>) -> Expr<'a> {
+fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
     let tok = parser.next();
 
     match tok {
