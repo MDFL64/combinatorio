@@ -1,0 +1,36 @@
+// MVP
+// + - * / % **
+// let statements (NO COMMAS)
+// output() (SINGLE VALUE)
+
+// TODO:
+
+compare_gate(x==1,y)
+
+// equivilant to mux
+match(val,
+    1 => a,
+    2 => b,
+    3 => c
+)
+
+mod if(sel,t_val,f_val) {
+    let @res = __eq_pass(sel,1,t_val);
+    let @res = __eq_pass(sel,0,f_val);
+}
+
+mod reg(clk,write,value) {
+    let @stored = 0;
+    let @stored = if(clk & write, value, stored);
+    output(stored);
+}
+
+mod add3(a,b,c) {
+    let result = a + b + c;
+    output(result,2,3,4);
+}
+
+mod main() {
+    let a,b,c,d = add3(1,2,3);
+    output(a+b+c+d);
+}
