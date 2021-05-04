@@ -8,16 +8,17 @@ use crate::parser::{Module, Statement, Expr};
 pub struct IRModule {
     name: String,
     bindings: HashMap<String,IRArg>,
-    exprs: Vec<IRExpr>,
-    outputs: Vec<IRArg>
+    nodes: Vec<IRNode>,
+    outputs_set: bool
 }
 
 #[derive(Debug)]
-enum IRExpr{
+enum IRNode{
     Input(u32),
-    Constant(i32),
+    Output(u32, IRArg),
+    Constant(i32), // <- totally redundant??? there may be some niche situations it's needed
     BinOp(IRArg,BinOp,IRArg),
-    Multi(Vec<IRExpr>)
+    Multi(Vec<IRNode>)
 }
 
 #[derive(Debug,Clone)]
@@ -38,14 +39,14 @@ impl IRModule {
         IRModule{
             name,
             bindings: HashMap::new(),
-            exprs: Vec::new(),
-            outputs: Vec::new()
+            nodes: Vec::new(),
+            outputs_set: false
         }
     }
 
     fn add_args(&mut self, arg_names: &Vec<&str>) {
         for (i,arg_name) in arg_names.iter().enumerate() {
-            self.exprs.push(IRExpr::Input(i as u32));
+            self.nodes.push(IRNode::Input(i as u32));
             if self.bindings.insert((*arg_name).to_owned(), IRArg::Link(i as u32,WireColor::Unknown) ).is_some() {
                 panic!("Module '{}': Duplicate argument '{}'.",self.name,arg_name);
             }
@@ -53,15 +54,16 @@ impl IRModule {
     }
 
     fn add_stmt(&mut self, stmt: &Statement) {
-        if self.outputs.len() > 0 {
+        if self.outputs_set {
             panic!("Module '{}': No statements may appear after output(...).",self.name);
         }
         match stmt {
             Statement::Output(out_exprs) => {
-                for expr in out_exprs {
-                    let expr_id = self.add_expr(expr);
-                    self.outputs.push(expr_id);
+                for (out_i, expr) in out_exprs.iter().enumerate() {
+                    let out_arg = self.add_expr(expr);
+                    self.nodes.push(IRNode::Output(out_i as u32, out_arg));
                 }
+                self.outputs_set = true;
             },
             _ => panic!("todo handle stmt {:?}",stmt)
         }
@@ -78,7 +80,7 @@ impl IRModule {
             },
             Expr::Constant(num) => {
                 let num_32: i32 = (*num).try_into().expect("bad constant todo msg");
-                //self.exprs.push(IRExpr::Constant(num_32));
+                //self.exprs.push(IRNode::Constant(num_32));
                 //self.exprs.len() as u32 - 1
                 IRArg::Constant(num_32)
             },
@@ -86,8 +88,8 @@ impl IRModule {
                 let lex = self.add_expr(lhs);
                 let rex = self.add_expr(rhs);
                 // TODO constant folding
-                self.exprs.push(IRExpr::BinOp(lex,*op,rex));
-                IRArg::Link(self.exprs.len() as u32 - 1, WireColor::Unknown)
+                self.nodes.push(IRNode::BinOp(lex,*op,rex));
+                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::Unknown)
             },
             _ => panic!("todo handle expr {:?}",expr)
         }
