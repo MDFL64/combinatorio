@@ -1,37 +1,27 @@
 use crate::lexer::{Lexer, LexToken};
+use crate::common::BinOp;
 
 use std::iter::Peekable;
 
 #[derive(Debug)]
 pub struct Module<'a> {
-    name: &'a str,
-    arg_names: Vec<&'a str>,
-    stmts: Vec<Statement<'a>>
+    pub name: &'a str,
+    pub arg_names: Vec<&'a str>,
+    pub stmts: Vec<Statement<'a>>
 }
 
 #[derive(Debug)]
-enum Statement<'a> {
+pub enum Statement<'a> {
     Terminator,
     Empty,
     Output(Vec<Expr<'a>>)
 }
 
 #[derive(Debug)]
-enum Expr<'a> {
+pub enum Expr<'a> {
     Ident(&'a str),
-    Number(u32),
+    Constant(i64),
     BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>)
-}
-
-#[derive(Debug)]
-enum BinOp {
-    Add,
-}
-
-impl BinOp {
-    fn prec(&self) -> u32 {
-        return 1;
-    }
 }
 
 struct Parser<'a> {
@@ -202,7 +192,7 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
     match tok {
         // TODO could be a module call!
         LexToken::Ident(id) => Expr::Ident(id),
-        LexToken::Number(num) => Expr::Number(num),
+        LexToken::Number(num) => Expr::Constant(num),
         _ => panic!("Expected expression, found {:?}.",tok)
     }
 }

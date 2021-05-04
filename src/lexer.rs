@@ -3,7 +3,7 @@ use std::str::FromStr;
 #[derive(Debug,PartialEq,Clone,Copy)]
 pub enum LexToken<'a> {
     Ident(&'a str),
-    Number(u32),
+    Number(i64),
 
     KeyMod,
     KeyOutput,
@@ -69,7 +69,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                     self.chars = remainder_str.chars();
 
-                    let num = u32::from_str(token_str).expect("failed to parse int");
+                    let num = i64::from_str(token_str).expect("failed to parse int");
 
                     Some(LexToken::Number(num))
                 } else if c.is_ascii_whitespace() {
