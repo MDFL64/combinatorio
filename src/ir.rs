@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 use crate::common::BinOp;
 use crate::parser::{Module, Statement, Expr};
@@ -6,16 +7,30 @@ use crate::parser::{Module, Statement, Expr};
 #[derive(Debug)]
 pub struct IRModule {
     name: String,
-    bindings: HashMap<String,u32>,
+    bindings: HashMap<String,IRArg>,
     exprs: Vec<IRExpr>,
-    outputs: Vec<u32>
+    outputs: Vec<IRArg>
 }
+
 #[derive(Debug)]
 enum IRExpr{
     Input(u32),
-    Constant(i64),
-    BinOp(u32,BinOp,u32),
+    Constant(i32),
+    BinOp(IRArg,BinOp,IRArg),
     Multi(Vec<IRExpr>)
+}
+
+#[derive(Debug,Clone)]
+enum IRArg {
+    Link(u32,WireColor),
+    Constant(i32)
+}
+
+#[derive(Debug,Clone)]
+enum WireColor {
+    Red,
+    Green,
+    Unknown
 }
 
 impl IRModule {
@@ -31,7 +46,7 @@ impl IRModule {
     fn add_args(&mut self, arg_names: &Vec<&str>) {
         for (i,arg_name) in arg_names.iter().enumerate() {
             self.exprs.push(IRExpr::Input(i as u32));
-            if self.bindings.insert((*arg_name).to_owned(), i as u32).is_some() {
+            if self.bindings.insert((*arg_name).to_owned(), IRArg::Link(i as u32,WireColor::Unknown) ).is_some() {
                 panic!("Module '{}': Duplicate argument '{}'.",self.name,arg_name);
             }
         }
@@ -52,24 +67,27 @@ impl IRModule {
         }
     }
 
-    fn add_expr(&mut self, expr: &Expr) -> u32 {
+    fn add_expr(&mut self, expr: &Expr) -> IRArg {
         match expr {
             Expr::Ident(name) => {
-                if let Some(id) = self.bindings.get(*name) {
-                    *id
+                if let Some(arg) = self.bindings.get(*name) {
+                    arg.clone()
                 } else {
                     panic!("Module '{}': '{}' is not defined.",self.name,name);
                 }
             },
             Expr::Constant(num) => {
-                self.exprs.push(IRExpr::Constant(*num));
-                self.exprs.len() as u32 - 1
+                let num_32: i32 = (*num).try_into().expect("bad constant todo msg");
+                //self.exprs.push(IRExpr::Constant(num_32));
+                //self.exprs.len() as u32 - 1
+                IRArg::Constant(num_32)
             },
             Expr::BinOp(lhs,op,rhs) => {
                 let lex = self.add_expr(lhs);
                 let rex = self.add_expr(rhs);
+                // TODO constant folding
                 self.exprs.push(IRExpr::BinOp(lex,*op,rex));
-                self.exprs.len() as u32 - 1
+                IRArg::Link(self.exprs.len() as u32 - 1, WireColor::Unknown)
             },
             _ => panic!("todo handle expr {:?}",expr)
         }
