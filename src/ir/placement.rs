@@ -49,14 +49,86 @@ impl NetRegistry {
     }
 }
 
+struct Grid {
+    cell_map: HashMap<(i32,i32),u32>,
+    node_positions: Vec<Option<(i32,i32)>>
+}
+
+impl Grid {
+    // POWER
+    // I/O
+    // ...
+    // ...
+    fn new(size: usize) -> Self {
+        let mut grid = Self{
+            cell_map: HashMap::new(),
+            node_positions: Vec::new()
+        };
+
+        grid.node_positions.resize(size, None);
+
+        grid
+    }
+
+    fn is_filled(&self, key: (i32,i32)) -> bool {
+        self.cell_map.get(&key).is_some()
+    }
+
+    fn set(&mut self, key: (i32,i32), val: u32) {
+        if let Some(current_id) = self.cell_map.get(&key) {
+            self.node_positions[*current_id as usize] = None;
+        }
+        if let Some(current_pos) = self.node_positions[val as usize] {
+            self.cell_map.remove(&current_pos);
+        }
+        self.cell_map.insert(key,val);
+        self.node_positions[val as usize] = Some(key);
+    }
+
+    fn add_input(&mut self, id: u32) {
+        let mut x = 0;
+        let y = 1;
+        loop {
+            if !self.is_filled((x,y)) {
+                self.set((x,y), id);
+                return;
+            }
+            x += 1;
+        }
+    }
+
+    fn add_output(&mut self, id: u32) {
+        let mut x = 0;
+        let y = 1;
+        loop {
+            if !self.is_filled((x,y)) {
+                break;
+            }
+            x += 1;
+        }
+        x += 1;
+        loop {
+            if !self.is_filled((x,y)) {
+                self.set((x,y), id);
+                return;
+            }
+            x += 1;
+        }
+    }
+}
+
 impl IRModule {
     pub fn place_nodes(&mut self) {
         let mut networks: NetRegistry = Default::default();
+        let mut grid = Grid::new(self.nodes.len());
 
         for (i,node) in self.nodes.iter().enumerate() {
             match node {
-                IRNode::Input(_) => (),
+                IRNode::Input(_) => {
+                    grid.add_input(i as u32);
+                },
                 IRNode::Output(_,arg) => {
+                    grid.add_output(i as u32);
                     networks.add_link(arg, i as u32);
                 },
                 IRNode::BinOp(lhs,_,rhs) => {
@@ -68,5 +140,6 @@ impl IRModule {
         }
 
         println!("=> {:#?}",networks.list);
+        println!("=> {:#?}",grid.node_positions);
     }
 }
