@@ -5,13 +5,15 @@ use crate::common::BinOp;
 use crate::parser::{Module, Statement, Expr};
 
 mod select_colors;
+mod select_symbols;
 
 #[derive(Debug)]
 pub struct IRModule {
     name: String,
     bindings: HashMap<String,IRArg>,
     nodes: Vec<IRNode>,
-    outputs_set: bool
+    outputs_set: bool,
+    out_symbols: Vec<u32>
 }
 
 #[derive(Debug)]
@@ -42,14 +44,19 @@ impl IRModule {
             name,
             bindings: HashMap::new(),
             nodes: Vec::new(),
-            outputs_set: false
+            outputs_set: false,
+            out_symbols: Vec::new()
         }
     }
 
     pub fn print(&self) {
         println!("IR MODULE: {}",self.name);
         for (i,node) in self.nodes.iter().enumerate() {
-            println!("    {}: {:?}",i,node);
+            if let Some(symbol) = self.out_symbols.get(i) {
+                println!("    {}: {:?} -- {}",i,node,symbol);
+            } else {
+                println!("    {}: {:?}",i,node);
+            }
         }
     }
 
