@@ -11,6 +11,7 @@ mod placement;
 #[derive(Debug)]
 pub struct IRModule {
     name: String,
+    port_count: i32,
     bindings: HashMap<String,IRArg>,
     nodes: Vec<IRNode>,
     outputs_set: bool,
@@ -43,6 +44,7 @@ impl IRModule {
     fn new(name: String) -> Self {
         IRModule{
             name,
+            port_count: 0,
             bindings: HashMap::new(),
             nodes: Vec::new(),
             outputs_set: false,
@@ -63,6 +65,7 @@ impl IRModule {
     }
 
     fn add_args(&mut self, arg_names: &Vec<&str>) {
+        self.port_count += arg_names.len() as i32;
         for (i,arg_name) in arg_names.iter().enumerate() {
             self.nodes.push(IRNode::Input(i as u32));
             if self.bindings.insert((*arg_name).to_owned(), IRArg::Link(i as u32,WireColor::None) ).is_some() {
@@ -81,6 +84,7 @@ impl IRModule {
                     let out_arg = self.add_expr(expr);
                     self.nodes.push(IRNode::Output(out_i as u32, out_arg));
                 }
+                self.port_count += out_exprs.len() as i32;
                 self.outputs_set = true;
             },
             _ => panic!("todo handle stmt {:?}",stmt)

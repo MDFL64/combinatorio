@@ -51,7 +51,8 @@ impl NetRegistry {
 
 struct Grid {
     cell_map: HashMap<(i32,i32),u32>,
-    node_positions: Vec<Option<(i32,i32)>>
+    node_positions: Vec<Option<(i32,i32)>>,
+    approx_w: i32
 }
 
 impl Grid {
@@ -60,9 +61,13 @@ impl Grid {
     // ...
     // ...
     fn new(size: usize) -> Self {
+
+        let approx_w = ((size as f32 / 2.0).sqrt() * 2.0).ceil() as i32;
+
         let mut grid = Self{
             cell_map: HashMap::new(),
-            node_positions: Vec::new()
+            node_positions: Vec::new(),
+            approx_w
         };
 
         grid.node_positions.resize(size, None);
@@ -85,8 +90,9 @@ impl Grid {
         self.node_positions[val as usize] = Some(key);
     }
 
-    fn add_input(&mut self, id: u32) {
-        let mut x = 0;
+    // Initial layout is very inefficent. We just check every cell each time until we find an empty one.
+    fn add_input(&mut self, id: u32, port_count: i32) {
+        let mut x = -port_count/2;
         let y = 1;
         loop {
             if !self.is_filled((x,y)) {
@@ -97,8 +103,8 @@ impl Grid {
         }
     }
 
-    fn add_output(&mut self, id: u32) {
-        let mut x = 0;
+    fn add_output(&mut self, id: u32, port_count: i32) {
+        let mut x = -port_count/2;
         let y = 1;
         loop {
             if !self.is_filled((x,y)) {
@@ -115,6 +121,22 @@ impl Grid {
             x += 1;
         }
     }
+
+    fn add_node(&mut self, id: u32) {
+        let base_x = -self.approx_w/2;
+        let mut y = 2;
+
+        loop {
+            for offset_x in 0..self.approx_w {
+                let x = base_x + offset_x;
+                if !self.is_filled((x,y)) {
+                    self.set((x,y), id);
+                    return;
+                }
+            }
+            y += 1;
+        }
+    }
 }
 
 impl IRModule {
@@ -125,13 +147,14 @@ impl IRModule {
         for (i,node) in self.nodes.iter().enumerate() {
             match node {
                 IRNode::Input(_) => {
-                    grid.add_input(i as u32);
+                    grid.add_input(i as u32, self.port_count);
                 },
                 IRNode::Output(_,arg) => {
-                    grid.add_output(i as u32);
+                    grid.add_output(i as u32, self.port_count);
                     networks.add_link(arg, i as u32);
                 },
                 IRNode::BinOp(lhs,_,rhs) => {
+                    grid.add_node(i as u32);
                     networks.add_link(lhs, i as u32);
                     networks.add_link(rhs, i as u32);
                 },
