@@ -13,4 +13,6 @@ fn main() {
     ir_mod.select_symbols();
 
     ir_mod.print();
+
+    ir_mod.place_nodes();
 }

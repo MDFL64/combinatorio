@@ -6,6 +6,7 @@ use crate::parser::{Module, Statement, Expr};
 
 mod select_colors;
 mod select_symbols;
+mod placement;
 
 #[derive(Debug)]
 pub struct IRModule {
@@ -22,7 +23,7 @@ enum IRNode {
     Output(u32, IRArg),
     Constant(i32), // <- totally redundant??? there may be some niche situations it's needed
     BinOp(IRArg,BinOp,IRArg),
-    Multi(Vec<IRNode>)
+    Multi(Vec<IRArg>) // <- still not sure how to actually handle these
 }
 
 #[derive(Debug,Clone)]
@@ -31,7 +32,7 @@ enum IRArg {
     Constant(i32)
 }
 
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug,Clone,Copy,PartialEq,Eq,Hash)]
 enum WireColor {
     Red,
     Green,
@@ -51,6 +52,7 @@ impl IRModule {
 
     pub fn print(&self) {
         println!("IR MODULE: {}",self.name);
+        println!("NODES:");
         for (i,node) in self.nodes.iter().enumerate() {
             if let Some(symbol) = self.out_symbols.get(i) {
                 println!("    {}: {:?} -- {}",i,node,symbol);
@@ -107,7 +109,7 @@ impl IRModule {
                 self.nodes.push(IRNode::BinOp(lex,*op,rex));
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
-            _ => panic!("todo handle expr {:?}",expr)
+            //_ => panic!("todo handle expr {:?}",expr)
         }
     }
 }
@@ -125,9 +127,7 @@ pub fn build_ir(parse_mods: Vec<Module>) -> IRModule {
         for stmt in p_mod.stmts {
             ir.add_stmt(&stmt);
         }
-
-        //println!("Make IR for: {} {:#?}",p_mod.name,ir);
-
+        
         return ir;
     }
 

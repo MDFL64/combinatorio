@@ -53,7 +53,5 @@ impl IRModule {
                 panic!("too many passes");
             }
         }
-        //println!("{} {:?}",constraints);
-
     }
 }
