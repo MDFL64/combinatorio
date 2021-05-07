@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 use std::convert::TryInto;
 
-use crate::common::BinOp;
+use crate::{CompileSettings, common::BinOp};
 use crate::parser::{Module, Statement, Expr};
 
 use self::placement::{Grid, WireLink};
@@ -11,9 +11,9 @@ mod select_symbols;
 mod placement;
 mod to_blueprint;
 
-#[derive(Debug)]
 pub struct IRModule {
     name: String,
+    settings: Rc<CompileSettings>,
     port_count: i32,
     bindings: HashMap<String,IRArg>,
     nodes: Vec<IRNode>,
@@ -57,9 +57,10 @@ pub enum WireColor {
 }
 
 impl IRModule {
-    fn new(name: String) -> Self {
+    fn new(name: String, settings: Rc<CompileSettings>) -> Self {
         IRModule{
             name,
+            settings,
             port_count: 0,
             bindings: HashMap::new(),
             nodes: Vec::new(),
@@ -147,6 +148,16 @@ impl IRModule {
                 let rex = self.add_expr(rhs);
 
                 // TODO constant folding
+                if self.settings.fold_constants {
+                    if let IRArg::Constant(lc) = lex {
+                        if let IRArg::Constant(rc) = rex {
+                            let const_val = op.fold(lc,rc);
+                            println!("-> {} {} {}",const_val,lc,rc);
+                            return IRArg::Constant(const_val);
+                        }
+                    }
+                }
+                
                 if lex.is_link() && lex == rex {
                     self.nodes.push(IRNode::BinOpSame(lex,*op));
                 } else {
@@ -162,11 +173,11 @@ impl IRModule {
 
 // Consumes a list of AST modules and returns the IR for the final module.
 // Runs checks on the modules. May panic if an error is encountered.
-pub fn build_ir(parse_mods: Vec<Module>) -> IRModule {
+pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRModule {
     //let defined: HashMap<String,IRModule> = HashMap::new();
 
     for p_mod in parse_mods {
-        let mut ir = IRModule::new(p_mod.name.to_owned());
+        let mut ir = IRModule::new(p_mod.name.to_owned(), settings);
 
         ir.add_args(&p_mod.arg_names);
 

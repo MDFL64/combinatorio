@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 mod common;
 
 mod lexer;
@@ -5,11 +7,19 @@ mod parser;
 mod ir;
 mod blueprint;
 
+pub struct CompileSettings {
+    fold_constants: bool
+}
+
 fn main() {
     let source = std::fs::read_to_string("test.c8r").expect("failed to read file");
-    let results = crate::parser::parse(&source);
+    let parse_results = crate::parser::parse(&source);
     
-    let mut ir_mod = ir::build_ir(results);
+    let settings = Rc::new(CompileSettings{
+        fold_constants: true
+    });
+
+    let mut ir_mod = ir::build_ir(parse_results, settings);
     ir_mod.select_colors();
     ir_mod.select_symbols();
     ir_mod.place_nodes();

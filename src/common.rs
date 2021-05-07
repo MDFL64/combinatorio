@@ -23,8 +23,23 @@ impl BinOp {
             BinOp::Sub => "-",
             BinOp::Mul => "*",
             BinOp::Div => "/",
-            BinOp::Mod => "/",
+            BinOp::Mod => "%",
             BinOp::Power => "^"
+        }
+    }
+
+    pub fn fold(&self, lhs: i32, rhs: i32) -> i32 {
+        match self {
+            BinOp::Add => lhs.wrapping_add(rhs),
+            BinOp::Sub => lhs.wrapping_sub(rhs),
+            BinOp::Mul => lhs.wrapping_mul(rhs),
+            BinOp::Div => lhs.wrapping_div(rhs),
+            BinOp::Mod => lhs % rhs,
+            BinOp::Power => if rhs < 0 {
+                panic!("negative pow")
+            } else {
+                lhs.wrapping_pow(rhs as u32)
+            }
         }
     }
 }
