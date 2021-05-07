@@ -25,7 +25,7 @@ fn symbol_to_signal(symbol: u32) -> Signal {
 
 fn get_circuit_id(ent_type: &str, connect_type: ConnectType) -> u32 {
     match ent_type {
-        "constant-combinator" => 1,
+        "constant-combinator" | "medium-electric-pole" => 1,
         "arithmetic-combinator" => match connect_type {
             ConnectType::In => 1,
             ConnectType::Out => 2
@@ -68,6 +68,23 @@ impl BlueprintBuilder{
             control_behavior: ControlBehavior{
                 arithmetic_conditions: None,
                 filters: Some(vec!(Filter{index:1,count,signal}))
+            }
+        });
+        id
+    }
+
+    fn add_pole(&mut self, pos: (f32,f32)) -> usize {
+        let id = self.entities.len()+1;
+        self.entities.push(Entity{
+            entity_number: id as u32,
+            name: "medium-electric-pole".to_owned(),
+            position: make_pos(pos),
+            direction: 4,
+
+            connections: Some(HashMap::new()),
+            control_behavior: ControlBehavior{
+                arithmetic_conditions: None,
+                filters: None
             }
         });
         id
@@ -171,9 +188,11 @@ impl IRModule {
                 },
                 IRNode::Output(_,arg) => {
                     let pos = self.get_true_pos(id as u32);
-                    let symbol = self.get_arg_symbol(arg);
-                    let const_val = if let IRArg::Constant(n) = arg { *n } else { 0 };
-                    ent_ids[id] = builder.add_constant(pos,symbol,const_val);
+                    if let IRArg::Constant(n) = arg {
+                        ent_ids[id] = builder.add_constant(pos,0,*n);
+                    } else {
+                        ent_ids[id] = builder.add_pole(pos);
+                    }
                 },
                 IRNode::BinOp(lhs,op,rhs) => {
                     let pos = self.get_true_pos(id as u32);

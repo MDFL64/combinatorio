@@ -1,3 +1,3 @@
 mod test(a,b) {
-    output(a+b+10);
+    output(a+b+10, 50+60+70, 1234);
 }

@@ -152,7 +152,8 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             LexToken::OpAdd => BinOp::Add,
 
             // sane expression terminators
-            LexToken::OpParenClose => break,
+            LexToken::OpParenClose |
+            LexToken::OpComma => break,
             _ => panic!("Expected operator, found {:?}",next_tok)
         };
 
