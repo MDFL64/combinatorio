@@ -12,32 +12,107 @@ struct WireNet {
 
 const MAX_DIST: f32 = 9.0;
 
-fn check_dist(a: (f32,f32), b: (f32,f32)) -> bool {
+fn square_dist(a: (f32,f32), b: (f32,f32)) -> f32 {
     let x = a.0 - b.0;
     let y = a.1 - b.1;
-    let sq_dist = x * x + y * y;
+    x * x + y * y
+}
+
+fn check_dist(sq_dist: f32) -> bool {
     return sq_dist <= MAX_DIST * MAX_DIST;
 }
 
 impl WireNet {
     fn to_links(&self, module: &IRModule, out: &mut Vec<WireLink>) -> bool {
-        if self.connections.len() == 2 {
-            let a = self.connections[0].clone();
-            let b = self.connections[1].clone();
-            let pos_a = module.get_true_pos(a.0);
-            let pos_b = module.get_true_pos(b.0);
-            if !check_dist(pos_a,pos_b) {
-                println!("{:?} {:?} / {:?} {:?}",a,b,pos_a,pos_b);
+        
+        let mut open = self.connections.clone();
+        let mut closed = vec!(open.pop().expect("invalid net"));
+
+        while open.len() > 0 {
+            let mut min_dist = f32::INFINITY;
+            let mut min_pair = None;
+
+            for (o_i,(o,_)) in open.iter().enumerate() {
+                for (c_i,(c,_)) in closed.iter().enumerate() {
+                    let pos_o = module.get_true_pos(*o);
+                    let pos_c = module.get_true_pos(*c);
+                    let dist  = square_dist(pos_o,pos_c);
+                    if dist < min_dist {
+                        min_dist = dist;
+                        min_pair = Some((o_i,c_i));
+                    }
+                }
+            }
+    
+            if !check_dist(min_dist) {
+                println!("check failed {}",min_dist.sqrt());
                 return false;
             }
+    
+            let (o_i,c_i) = min_pair.expect("invalid net");
+    
+            let o = open.remove(o_i);
+            let c = closed[c_i].clone();
+    
             out.push(WireLink{
                 color: self.color,
-                a,
-                b
+                a: o.clone(),
+                b: c
             });
-            true
-        } else {
-            panic!("todo make this actually work for non-trivial")
+            closed.push(o);
+        }
+
+        return true;
+    }
+
+    fn correct(&self, module: &mut IRModule) {
+        const LERP_FRACTION: f32 = 0.5;
+
+        fn lerp_pos(start: (i32,i32), end: (i32,i32), f: f32) -> (i32,i32) {
+            let x = start.0 + ((end.0 - start.0) as f32 * f).round() as i32;
+            let y = start.1 + ((end.1 - start.1) as f32 * f).round() as i32;
+            (x,y)
+        }
+
+        // Determine midpoint.
+        let mut x_sum = 0.0;
+        let mut y_sum = 0.0;
+        for (id,_) in &self.connections {
+            let pos = module.grid.get_pos_for(*id);
+            x_sum += pos.0 as f32;
+            y_sum += pos.1 as f32;
+        }
+        let mid_pos = (
+            (x_sum / self.connections.len() as f32).round() as i32,
+            (y_sum / self.connections.len() as f32).round() as i32
+        );
+
+        // Get better positions.
+        for (id,_) in &self.connections {
+            if !module.can_move(*id) {
+                continue;
+            }
+
+            let base_pos = module.grid.get_pos_for(*id);
+            if base_pos == mid_pos {
+                continue;
+            }
+
+            let new_pos = lerp_pos(base_pos, mid_pos, LERP_FRACTION);
+            if new_pos == mid_pos {
+                continue;
+            }
+
+            // Swap
+            let old = module.grid.get_id_at(new_pos);
+            if let Some(old_id) = old {
+                if !module.can_move(old_id) {
+                    continue;
+                }
+                module.grid.set(base_pos, old_id);
+            }
+            module.grid.set(new_pos, *id);
+            println!("swapped {} {:?}",id,old);
         }
     }
 }
@@ -66,7 +141,10 @@ impl NetRegistry {
             if src_net_exists && dest_net_exists {
                 panic!("both exist");
             } else if src_net_exists {
-                panic!("src exists");
+                let net_id = *self.map.get(&src_key).unwrap();
+                let net = &mut self.list[net_id];
+                net.connections.push((dest_id,ConnectType::In));
+                self.map.insert(dest_key, net_id);
             } else if dest_net_exists {
                 panic!("dest exists");
             } else {
@@ -129,6 +207,10 @@ impl Grid {
         self.cell_map.get(&key).is_some()
     }
 
+    fn get_id_at(&self, key: (i32,i32)) -> Option<u32> {
+        self.cell_map.get(&key).map(|x| *x)
+    }
+
     fn set(&mut self, key: (i32,i32), val: u32) {
         if let Some(current_id) = self.cell_map.get(&key) {
             self.node_positions[*current_id as usize] = None;
@@ -177,8 +259,9 @@ impl Grid {
         let mut y = 2;
 
         loop {
+            let wind_dir = (y & 1) == 1;
             for offset_x in 0..self.approx_w {
-                let x = base_x + offset_x;
+                let x = if wind_dir { base_x + offset_x } else { -base_x - offset_x };
                 if !self.is_cell_filled((x,y)) {
                     self.set((x,y), id);
                     return;
@@ -217,9 +300,26 @@ impl IRModule {
             }
         }
 
-        // Try to generate links
-        let res = networks.to_links(&self);
+        loop {
+            // Try to generate links
+            let res = networks.to_links(&self);
+            if let Err(bad_nets) = res {
+                println!("still bad? {:?}",bad_nets);
+                for net_id in bad_nets {
+                    networks.list[net_id as usize].correct(self);
+                }
+            } else {
+                self.links = res.unwrap();
+                return;
+            }
+        }
+    }
 
-        self.links = res.expect("there was an error");
+    fn can_move(&self, id: u32) -> bool {
+        match self.nodes[id as usize] {
+            IRNode::Input(..) |
+            IRNode::Output(..) => false,
+            _ => true
+        }
     }
 }

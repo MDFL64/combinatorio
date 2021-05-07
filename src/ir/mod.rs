@@ -88,7 +88,7 @@ impl IRModule {
     fn get_true_pos(&self, id: u32) -> (f32,f32) {
         let pos = self.grid.get_pos_for(id);
         let x = pos.0 as f32;
-        let base_y = pos.1 as f32;
+        let base_y = pos.1 as f32 * 2.0;
         let node = &self.nodes[id as usize];
         let offset_y = match node {
             IRNode::BinOp(..) |
