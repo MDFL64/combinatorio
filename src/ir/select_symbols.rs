@@ -16,6 +16,7 @@ impl IRModule {
             match node {
                 IRNode::Input(_) => (),
                 IRNode::Output(..) => (),
+                IRNode::BinOpSame(..) => (),
                 IRNode::BinOp(lhs,_,rhs) => {
                     if let IRArg::Link(lhs_in,_) = lhs {
                         if let IRArg::Link(rhs_in,_) = rhs {

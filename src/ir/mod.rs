@@ -29,13 +29,24 @@ enum IRNode {
     Output(u32, IRArg),
     Constant(i32), // <- totally redundant??? there may be some niche situations it's needed
     BinOp(IRArg,BinOp,IRArg),
+    BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
     Multi(Vec<IRArg>) // <- still not sure how to actually handle these
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 enum IRArg {
     Link(u32,WireColor),
     Constant(i32)
+}
+
+impl IRArg {
+    fn is_link(&self) -> bool {
+        return if let IRArg::Link(..) = self { true } else { false };
+    }
+
+    fn is_const(&self) -> bool {
+        !self.is_link()
+    }
 }
 
 #[derive(Debug,Clone,Copy,PartialEq,Eq,Hash)]
@@ -77,9 +88,14 @@ impl IRModule {
         let pos = self.grid.get_pos_for(id);
         let x = pos.0 as f32;
         let base_y = pos.1 as f32;
-        let offset_y = match self.nodes[id as usize] {
-            IRNode::BinOp(..) => 0.5,
-            _ => 0.0
+        let node = &self.nodes[id as usize];
+        let offset_y = match node {
+            IRNode::BinOp(..) |
+            IRNode::BinOpSame(..) => 0.5,
+            IRNode::Input(..) |
+            IRNode::Output(..) |
+            IRNode::Constant(..) => 0.0,
+            _ => panic!("todo offset {:?}",node)
         };
         (x, base_y + offset_y)
     }
@@ -129,8 +145,14 @@ impl IRModule {
             Expr::BinOp(lhs,op,rhs) => {
                 let lex = self.add_expr(lhs);
                 let rex = self.add_expr(rhs);
+
                 // TODO constant folding
-                self.nodes.push(IRNode::BinOp(lex,*op,rex));
+                if lex.is_link() && lex == rex {
+                    self.nodes.push(IRNode::BinOpSame(lex,*op));
+                } else {
+                    self.nodes.push(IRNode::BinOp(lex,*op,rex));
+                }
+
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
             //_ => panic!("todo handle expr {:?}",expr)

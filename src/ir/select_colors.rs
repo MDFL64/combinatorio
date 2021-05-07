@@ -46,6 +46,9 @@ impl IRModule {
                     let forbid_color = update_color_for_arg(lhs,WireColor::None, &mut out_color_counts);
                     update_color_for_arg(rhs , forbid_color, &mut out_color_counts);
                 },
+                IRNode::BinOpSame(arg,_) => {
+                    update_color_for_arg(arg,WireColor::None, &mut out_color_counts);
+                },
                 IRNode::Output(_,arg) => {
                     update_color_for_arg(arg , WireColor::None, &mut out_color_counts);
                 },

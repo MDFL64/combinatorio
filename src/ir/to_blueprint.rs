@@ -34,6 +34,7 @@ fn get_circuit_id(ent_type: &str, connect_type: ConnectType) -> u32 {
     }
 }
 
+#[derive(Clone)]
 enum SymbolOrConstant {
     Symbol(u32),
     Constant(i32)
@@ -157,14 +158,6 @@ impl BlueprintBuilder{
 }
 
 impl IRModule {
-    fn get_arg_symbol(&self, arg: &IRArg) -> u32 {
-        match arg {
-            IRArg::Link(id,_) => {
-                self.out_symbols[*id as usize]
-            },
-            IRArg::Constant(_) => 0
-        }
-    }
 
     fn get_arg_symbol_or_const(&self, arg: &IRArg) -> SymbolOrConstant {
         match arg {
@@ -202,8 +195,18 @@ impl IRModule {
                         self.get_arg_symbol_or_const(rhs),
                         self.out_symbols[id]
                     );
-                }
-                _ => println!("todo build {:?}",node)
+                },
+                IRNode::BinOpSame(arg,op) => {
+                    let pos = self.get_true_pos(id as u32);
+                    let arg_val = self.get_arg_symbol_or_const(arg);
+                    ent_ids[id] = builder.add_arithmetic(pos,
+                        op.to_str().to_owned(), 
+                        arg_val.clone(),
+                        arg_val,
+                        self.out_symbols[id]
+                    );
+                },
+                _ => panic!("todo build {:?}",node)
             }
         }
 
@@ -215,8 +218,6 @@ impl IRModule {
                 (ent_ids[a_id as usize],a_ty),
                 (ent_ids[b_id as usize],b_ty)
             );
-
-            println!("{:?}",link);
         }
 
         builder.finish()

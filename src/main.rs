@@ -21,6 +21,7 @@ fn main() {
     let bp_obj = ir_mod.to_blueprint();
 
     let bp_string = blueprint::write_blueprint(bp_obj);
+    println!();
     println!("{}",bp_string);
 
     /*blueprint::write_blueprint(r#"{

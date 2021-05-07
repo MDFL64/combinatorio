@@ -150,6 +150,11 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
 
         let new_op = match next_tok {
             LexToken::OpAdd => BinOp::Add,
+            LexToken::OpSub => BinOp::Sub,
+            LexToken::OpMul => BinOp::Mul,
+            LexToken::OpDiv => BinOp::Div,
+            LexToken::OpMod => BinOp::Mod,
+            LexToken::OpPower => BinOp::Power,
 
             // sane expression terminators
             LexToken::OpParenClose |
@@ -165,6 +170,8 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
 
                 let bin_expr = Expr::BinOp(Box::new(lhs),op,Box::new(rhs));
                 expr_stack.push(bin_expr);
+            } else {
+                break;
             }
         }
         op_stack.push(new_op);
@@ -194,6 +201,12 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
         // TODO could be a module call!
         LexToken::Ident(id) => Expr::Ident(id),
         LexToken::Number(num) => Expr::Constant(num),
+        LexToken::OpParenOpen => {
+            // This *can* be done in the normal expression parser without recursion, but it's cleaner to do here.
+            let expr = parse_expr(parser);
+            parser.take(LexToken::OpParenClose);
+            expr
+        },
         _ => panic!("Expected expression, found {:?}.",tok)
     }
 }

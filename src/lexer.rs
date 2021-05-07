@@ -9,6 +9,11 @@ pub enum LexToken<'a> {
     KeyOutput,
 
     OpAdd,
+    OpSub,
+    OpMul,
+    OpDiv,
+    OpMod,
+    OpPower,
 
     OpComma,
     OpSemicolon,
@@ -79,6 +84,28 @@ impl<'a> Iterator for Lexer<'a> {
                 } else {
                     match c {
                         '+' => Some(LexToken::OpAdd),
+                        '-' => Some(LexToken::OpSub),
+                        '%' => Some(LexToken::OpMod),
+                        '/' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('/') {
+                                // Single-line comment.
+                                while self.chars.next() != Some('\n') { }
+                                continue;
+                            } else {
+                                Some(LexToken::OpDiv)
+                            }
+                        },
+                        '*' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('*') {
+                                self.chars.next();
+                                Some(LexToken::OpPower)
+                            } else {
+                                Some(LexToken::OpMul)
+                            }
+                        },
+
 
                         ',' => Some(LexToken::OpComma),
                         ';' => Some(LexToken::OpSemicolon),
