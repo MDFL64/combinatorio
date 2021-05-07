@@ -1,5 +1,5 @@
 use crate::lexer::{Lexer, LexToken};
-use crate::common::BinOp;
+use crate::common::{BinOp,UnaryOp};
 
 use std::iter::Peekable;
 
@@ -21,7 +21,8 @@ pub enum Statement<'a> {
 pub enum Expr<'a> {
     Ident(&'a str),
     Constant(i64),
-    BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>)
+    BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>),
+    UnOp(UnaryOp,Box<Expr<'a>>)
 }
 
 struct Parser<'a> {
@@ -206,6 +207,9 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             let expr = parse_expr(parser);
             parser.take(LexToken::OpParenClose);
             expr
+        },
+        LexToken::OpSub => {
+            Expr::UnOp(UnaryOp::Negate, Box::new(parse_expr(parser)))
         },
         _ => panic!("Expected expression, found {:?}.",tok)
     }

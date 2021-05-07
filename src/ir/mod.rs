@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 use std::convert::TryInto;
 
-use crate::{CompileSettings, common::BinOp};
+use crate::{CompileSettings, common::{BinOp, UnaryOp}};
 use crate::parser::{Module, Statement, Expr};
 
 use self::placement::{Grid, WireLink};
@@ -138,9 +138,7 @@ impl IRModule {
                 }
             },
             Expr::Constant(num) => {
-                let num_32: i32 = (*num).try_into().expect("bad constant todo msg");
-                //self.exprs.push(IRNode::Constant(num_32));
-                //self.exprs.len() as u32 - 1
+                let num_32: i32 = (*num).try_into().expect("bad constant");
                 IRArg::Constant(num_32)
             },
             Expr::BinOp(lhs,op,rhs) => {
@@ -152,7 +150,6 @@ impl IRModule {
                     if let IRArg::Constant(lc) = lex {
                         if let IRArg::Constant(rc) = rex {
                             let const_val = op.fold(lc,rc);
-                            println!("-> {} {} {}",const_val,lc,rc);
                             return IRArg::Constant(const_val);
                         }
                     }
@@ -164,6 +161,33 @@ impl IRModule {
                     self.nodes.push(IRNode::BinOp(lex,*op,rex));
                 }
 
+                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+            },
+            Expr::UnOp(op,arg) => {
+                // SPECIAL CASE: Negate constants immediately to deal with possible i32::MIN
+                // Do this REGARDLESS of whether constant folding is enabled.
+                if *op == UnaryOp::Negate {
+                    if let Expr::Constant(const_val) = arg.as_ref() {
+                        let negated = -const_val;
+                        let num_32: i32 = negated.try_into().expect("bad constant");
+                        return IRArg::Constant(num_32);
+                    }
+                }
+
+                if *op != UnaryOp::Negate {
+                    panic!("unary op nyi");
+                }
+
+                // Try normal constant-folding
+                let ir_arg = self.add_expr(arg);
+                if self.settings.fold_constants {
+                    if let IRArg::Constant(ac) = ir_arg {
+                        return IRArg::Constant(0i32.checked_sub(ac).expect("bad folded negation"));
+                    }
+                }
+                
+                // Convert to a subtraction bin-op
+                self.nodes.push(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg));
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
             //_ => panic!("todo handle expr {:?}",expr)

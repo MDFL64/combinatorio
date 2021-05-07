@@ -44,6 +44,12 @@ impl BinOp {
     }
 }
 
+#[derive(Debug,Clone,Copy,PartialEq)]
+pub enum UnaryOp {
+    Negate,
+    BitNot // '~' only, to avoid confusion with '!'
+}
+
 #[derive(Debug,Hash,PartialEq,Eq,Clone)]
 pub enum ConnectType {
     In,
