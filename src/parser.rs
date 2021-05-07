@@ -14,6 +14,7 @@ pub struct Module<'a> {
 pub enum Statement<'a> {
     Terminator,
     Empty,
+    VarBinding(Vec<&'a str>,Expr<'a>),
     Output(Vec<Expr<'a>>)
 }
 
@@ -132,6 +133,11 @@ fn parse_stmt<'a>(parser: &mut Parser<'a>) -> Statement<'a> {
             }
             Statement::Output(out_args)
         },
+        LexToken::KeyLet => {
+            let ident = parser.take_ident();
+            parser.take(LexToken::OpAssign);
+            Statement::VarBinding(vec!(ident),parse_expr(parser))
+        },
         LexToken::OpSemicolon => Statement::Empty,
         LexToken::OpBraceClose => Statement::Terminator,
         _ => panic!("Expected statment, found {:?}.",tok)
@@ -159,6 +165,7 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
 
             // sane expression terminators
             LexToken::OpParenClose |
+            LexToken::OpSemicolon |
             LexToken::OpComma => break,
             _ => panic!("Expected operator, found {:?}",next_tok)
         };

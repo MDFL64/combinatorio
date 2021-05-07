@@ -7,6 +7,7 @@ pub enum LexToken<'a> {
 
     KeyMod,
     KeyOutput,
+    KeyLet,
 
     OpAdd,
     OpSub,
@@ -15,6 +16,7 @@ pub enum LexToken<'a> {
     OpMod,
     OpPower,
 
+    OpAssign,
     OpComma,
     OpSemicolon,
 
@@ -29,6 +31,7 @@ impl<'a> LexToken<'a> {
         match ident {
             "mod" => Self::KeyMod,
             "output" => Self::KeyOutput,
+            "let" => Self::KeyLet,
             _ => Self::Ident(ident)
         }
     }
@@ -106,6 +109,7 @@ impl<'a> Iterator for Lexer<'a> {
                             }
                         },
 
+                        '=' => Some(LexToken::OpAssign),
 
                         ',' => Some(LexToken::OpComma),
                         ';' => Some(LexToken::OpSemicolon),

@@ -124,6 +124,13 @@ impl IRModule {
                 self.port_count += out_exprs.len() as i32;
                 self.outputs_set = true;
             },
+            Statement::VarBinding(idents,expr) => {
+                // TODO check sub-module calls
+                assert!(idents.len() == 1);
+                let ident = idents[0].to_owned();
+                let result_arg = self.add_expr(expr);
+                self.bindings.insert(ident, result_arg);
+            },
             _ => panic!("todo handle stmt {:?}",stmt)
         }
     }
