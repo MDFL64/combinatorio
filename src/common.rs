@@ -12,3 +12,9 @@ impl BinOp {
         return "+";
     }
 }
+
+#[derive(Debug,Hash,PartialEq,Eq,Clone)]
+pub enum ConnectType {
+    In,
+    Out
+}

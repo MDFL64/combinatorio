@@ -16,7 +16,7 @@ fn main() {
 
     ir_mod.print();
 
-    let bp = blueprint::read_blueprint("0eNqVkU1uhDAMhe/iZRUq/kaUHGK2XVQjFMDtWIIEJQYNQty9DkhtpS6qZmf7+fOzs0E7zDh5sgx6A+qcDaDfNgj0Yc0Qc7xOCBqIcQQF1owxMp74PiJTl3RubMkadh52BWR7fIDO9psCtExMeAKPYG3sPLboRfAHSsHkgnQ7Gz0IMcmL+vmiYAVdlLVM6sljdwpKBWKcvRuaFu9mIQFI1ze5kXJ/0EIsvJMP3PxacSHPs2S+rJ2K5DUuFjAyIiiwiddKsjRNFbgJvTltwJO0upmn+R/wK+zy5FrHgfWP/1CwoA8HOX/JyqrOq6KqLlla7vsnCIWVwA==");
+    blueprint::read_blueprint("0eNqVkN0KwjAMRt/lu+5k6+ZfX0WGuBk0sKaj68Qx+u6u80YQBC8TknOSb0bTjdR7lgAzg1snA8xpxsA3uXSpF6aeYMCBLBTkYlNl6cqjzaijNnhus951hKjAcqUnTBFrBZLAgenNW4vpLKNtyC8Dv0kKvRuWZSfpggWY6fK42SpMMGW122wXlRDf7o0bfRLoOqovif5fkv+SFHV6aw3CfOSm8CA/rBh9KKr9Ue/LQ5XvqjzGF/UAc5w=");
 
     let bp_obj = ir_mod.to_blueprint();
 

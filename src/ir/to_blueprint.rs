@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::blueprint::{ArithmeticConditions, Blueprint, ControlBehavior, Entity, Filter, Position, Signal};
+use crate::blueprint::{ArithmeticConditions, Blueprint, Connection, ControlBehavior, Entity, Filter, Position, Signal};
 
-use super::{IRArg, IRModule, IRNode};
+use super::{IRArg, IRModule, IRNode, WireColor};
+use crate::common::ConnectType;
 
 struct BlueprintBuilder {
     entities: Vec<Entity>
@@ -19,6 +20,17 @@ fn symbol_to_signal(symbol: u32) -> Signal {
         1 => Signal{cat:"virtual".to_owned(),name:"signal-B".to_owned()},
         2 => Signal{cat:"virtual".to_owned(),name:"signal-C".to_owned()},
         _ => panic!("can't get symbol for {}",symbol)
+    }
+}
+
+fn get_circuit_id(ent_type: &str, connect_type: ConnectType) -> u32 {
+    match ent_type {
+        "constant-combinator" => 1,
+        "arithmetic-combinator" => match connect_type {
+            ConnectType::In => 1,
+            ConnectType::Out => 2
+        },
+        _ => panic!("can't get circuit id for: {}",ent_type)
     }
 }
 
@@ -44,7 +56,7 @@ impl BlueprintBuilder{
     }
 
     fn add_constant(&mut self, pos: (f32,f32), symbol: u32, count: i32) -> usize {
-        let id = self.entities.len();
+        let id = self.entities.len()+1;
         let signal = symbol_to_signal(symbol);
         self.entities.push(Entity{
             entity_number: id as u32,
@@ -62,7 +74,7 @@ impl BlueprintBuilder{
     }
 
     fn add_arithmetic(&mut self, pos: (f32,f32), operation: String, lhs: SymbolOrConstant, rhs: SymbolOrConstant, out_symbol: u32) -> usize {
-        let id = self.entities.len();
+        let id = self.entities.len()+1;
 
         let (first_signal,first_constant) = lhs.unpack();
         let (second_signal,second_constant) = rhs.unpack();
@@ -88,6 +100,36 @@ impl BlueprintBuilder{
             }
         });
         id
+    }
+
+    fn add_link(&mut self, color: WireColor, a: (usize,ConnectType), b: (usize,ConnectType)) {
+        let a_circuit_id = get_circuit_id(&self.entities[a.0-1].name, a.1);
+        let b_circuit_id = get_circuit_id(&self.entities[b.0-1].name, b.1);
+
+        // TODO clean this up a bit -- add a getter for Connections that returns the list for a color
+        if color == WireColor::Red {
+            self.entities[a.0-1].connections.as_mut().unwrap()
+                .entry(a_circuit_id).or_default()
+                .red.get_or_insert_with(|| Vec::new())
+                .push(Connection{entity_id: b.0 as u32, circuit_id: Some(b_circuit_id)});
+
+            self.entities[b.0-1].connections.as_mut().unwrap()
+                .entry(b_circuit_id).or_default()
+                .red.get_or_insert_with(|| Vec::new())
+                .push(Connection{entity_id: a.0 as u32, circuit_id: Some(a_circuit_id)});
+        } else if color == WireColor::Green {
+            self.entities[a.0-1].connections.as_mut().unwrap()
+                .entry(a_circuit_id).or_default()
+                .green.get_or_insert_with(|| Vec::new())
+                .push(Connection{entity_id: b.0 as u32, circuit_id: Some(b_circuit_id)});
+
+            self.entities[b.0-1].connections.as_mut().unwrap()
+                .entry(b_circuit_id).or_default()
+                .green.get_or_insert_with(|| Vec::new())
+                .push(Connection{entity_id: a.0 as u32, circuit_id: Some(a_circuit_id)});
+        } else {
+            panic!("no wire color in blueprint gen");
+        }
     }
 
     fn finish(self) -> Blueprint {
@@ -118,22 +160,25 @@ impl IRModule {
 
     pub fn to_blueprint(&self) -> Blueprint {
         let mut builder = BlueprintBuilder::new();
+        let mut ent_ids = Vec::new();
+        ent_ids.resize(self.nodes.len(), 0);
         for (id, node) in self.nodes.iter().enumerate() {
             match node {
                 IRNode::Input(_) => {
                     let pos = self.get_true_pos(id as u32);
                     let symbol = self.out_symbols[id];
-                    builder.add_constant(pos,symbol,0);
+                    ent_ids[id] = builder.add_constant(pos,symbol,0);
                 },
                 IRNode::Output(_,arg) => {
                     let pos = self.get_true_pos(id as u32);
                     let symbol = self.get_arg_symbol(arg);
                     let const_val = if let IRArg::Constant(n) = arg { *n } else { 0 };
-                    builder.add_constant(pos,symbol,const_val);
+                    ent_ids[id] = builder.add_constant(pos,symbol,const_val);
                 },
                 IRNode::BinOp(lhs,op,rhs) => {
                     let pos = self.get_true_pos(id as u32);
-                    builder.add_arithmetic(pos,op.to_str().to_owned(), 
+                    ent_ids[id] = builder.add_arithmetic(pos,
+                        op.to_str().to_owned(), 
                         self.get_arg_symbol_or_const(lhs),
                         self.get_arg_symbol_or_const(rhs),
                         self.out_symbols[id]
@@ -142,6 +187,19 @@ impl IRModule {
                 _ => println!("todo build {:?}",node)
             }
         }
+
+        for link in &self.links {
+            let (a_id,a_ty) = link.a.clone();
+            let (b_id,b_ty) = link.b.clone();
+
+            builder.add_link(link.color, 
+                (ent_ids[a_id as usize],a_ty),
+                (ent_ids[b_id as usize],b_ty)
+            );
+
+            println!("{:?}",link);
+        }
+
         builder.finish()
     }
 }

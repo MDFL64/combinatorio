@@ -39,7 +39,7 @@ enum IRArg {
 }
 
 #[derive(Debug,Clone,Copy,PartialEq,Eq,Hash)]
-enum WireColor {
+pub enum WireColor {
     Red,
     Green,
     None

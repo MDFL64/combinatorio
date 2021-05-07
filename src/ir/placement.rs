@@ -1,12 +1,8 @@
 use std::collections::HashMap;
 
-use super::{IRArg, IRModule, IRNode, WireColor};
+use crate::common::ConnectType;
 
-#[derive(Debug,Hash,PartialEq,Eq,Clone)]
-enum ConnectType {
-    In,
-    Out
-}
+use super::{IRArg, IRModule, IRNode, WireColor};
 
 #[derive(Debug)]
 struct WireNet {
@@ -48,9 +44,9 @@ impl WireNet {
 
 #[derive(Debug)]
 pub struct WireLink {
-    color: WireColor,
-    a: (u32,ConnectType),
-    b: (u32,ConnectType)
+    pub color: WireColor,
+    pub a: (u32,ConnectType),
+    pub b: (u32,ConnectType)
 }
 
 #[derive(Default)]

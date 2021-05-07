@@ -78,7 +78,7 @@ pub struct Signal {
     pub name: String
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default)]
 pub struct Connections {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub red: Option<Vec<Connection>>,
