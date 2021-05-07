@@ -9,6 +9,7 @@ use self::placement::{Grid, WireLink};
 mod select_colors;
 mod select_symbols;
 mod placement;
+mod to_blueprint;
 
 #[derive(Debug)]
 pub struct IRModule {
