@@ -4,6 +4,8 @@ use std::convert::TryInto;
 use crate::common::BinOp;
 use crate::parser::{Module, Statement, Expr};
 
+use self::placement::{Grid, WireLink};
+
 mod select_colors;
 mod select_symbols;
 mod placement;
@@ -15,7 +17,9 @@ pub struct IRModule {
     bindings: HashMap<String,IRArg>,
     nodes: Vec<IRNode>,
     outputs_set: bool,
-    out_symbols: Vec<u32>
+    out_symbols: Vec<u32>,
+    grid: Grid,
+    links: Vec<WireLink>
 }
 
 #[derive(Debug)]
@@ -48,7 +52,9 @@ impl IRModule {
             bindings: HashMap::new(),
             nodes: Vec::new(),
             outputs_set: false,
-            out_symbols: Vec::new()
+            out_symbols: Vec::new(),
+            grid: Default::default(),
+            links: Vec::new()
         }
     }
 
@@ -56,12 +62,25 @@ impl IRModule {
         println!("IR MODULE: {}",self.name);
         println!("NODES:");
         for (i,node) in self.nodes.iter().enumerate() {
-            if let Some(symbol) = self.out_symbols.get(i) {
-                println!("    {}: {:?} -- {}",i,node,symbol);
-            } else {
-                println!("    {}: {:?}",i,node);
-            }
+            let pos = self.get_true_pos(i as u32 );
+            let symbol = self.out_symbols.get(i).unwrap();
+            println!("    {}: {:?}, pos = {:?}, symbol = {}",i,node,pos,symbol);
         }
+        println!("LINKS:");
+        for link in &self.links {
+            println!("    {:?}",link);
+        }
+    }
+
+    fn get_true_pos(&self, id: u32) -> (f32,f32) {
+        let pos = self.grid.get_pos_for(id);
+        let x = pos.0 as f32;
+        let base_y = pos.1 as f32;
+        let offset_y = match self.nodes[id as usize] {
+            IRNode::BinOp(..) => 0.5,
+            _ => 0.0
+        };
+        (x, base_y + offset_y)
     }
 
     fn add_args(&mut self, arg_names: &Vec<&str>) {

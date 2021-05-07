@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{IRArg, IRModule, IRNode, WireColor};
 
-#[derive(Debug,Hash,PartialEq,Eq)]
+#[derive(Debug,Hash,PartialEq,Eq,Clone)]
 enum ConnectType {
     In,
     Out
@@ -12,6 +12,45 @@ enum ConnectType {
 struct WireNet {
     color: WireColor,
     connections: Vec<(u32,ConnectType)>
+}
+
+const MAX_DIST: f32 = 9.0;
+
+fn check_dist(a: (f32,f32), b: (f32,f32)) -> bool {
+    let x = a.0 - b.0;
+    let y = a.1 - b.1;
+    let sq_dist = x * x + y * y;
+    return sq_dist <= MAX_DIST * MAX_DIST;
+}
+
+impl WireNet {
+    fn to_links(&self, module: &IRModule, out: &mut Vec<WireLink>) -> bool {
+        if self.connections.len() == 2 {
+            let a = self.connections[0].clone();
+            let b = self.connections[1].clone();
+            let pos_a = module.get_true_pos(a.0);
+            let pos_b = module.get_true_pos(b.0);
+            if !check_dist(pos_a,pos_b) {
+                println!("{:?} {:?} / {:?} {:?}",a,b,pos_a,pos_b);
+                return false;
+            }
+            out.push(WireLink{
+                color: self.color,
+                a,
+                b
+            });
+            true
+        } else {
+            panic!("todo make this actually work for non-trivial")
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct WireLink {
+    color: WireColor,
+    a: (u32,ConnectType),
+    b: (u32,ConnectType)
 }
 
 #[derive(Default)]
@@ -47,9 +86,28 @@ impl NetRegistry {
             }
         }
     }
+
+    // On success, returns a list of links.
+    // On failure, returns a list of bad network IDs.
+    fn to_links(&self, module: &IRModule) -> Result< Vec<WireLink>, Vec<u32> > {
+        let mut out = Vec::new();
+        let mut failed = Vec::new();
+        for (i, net) in self.list.iter().enumerate() {
+            if !net.to_links(module, &mut out) {
+                failed.push(i as u32);
+            }
+        }
+
+        if failed.len() > 0 {
+            Err(failed)
+        } else {
+            Ok(out)
+        }
+    }
 }
 
-struct Grid {
+#[derive(Default, Debug)]
+pub struct Grid {
     cell_map: HashMap<(i32,i32),u32>,
     node_positions: Vec<Option<(i32,i32)>>,
     approx_w: i32
@@ -60,22 +118,18 @@ impl Grid {
     // I/O
     // ...
     // ...
-    fn new(size: usize) -> Self {
+    fn init(&mut self, size: usize) {
 
-        let approx_w = ((size as f32 / 2.0).sqrt() * 2.0).ceil() as i32;
+        self.approx_w = ((size as f32 / 2.0).sqrt() * 2.0).ceil() as i32;
 
-        let mut grid = Self{
-            cell_map: HashMap::new(),
-            node_positions: Vec::new(),
-            approx_w
-        };
-
-        grid.node_positions.resize(size, None);
-
-        grid
+        self.node_positions.resize(size, None);
     }
 
-    fn is_filled(&self, key: (i32,i32)) -> bool {
+    pub fn get_pos_for(&self, id: u32) -> (i32,i32) {
+        self.node_positions[id as usize].unwrap()
+    }
+
+    fn is_cell_filled(&self, key: (i32,i32)) -> bool {
         self.cell_map.get(&key).is_some()
     }
 
@@ -95,7 +149,7 @@ impl Grid {
         let mut x = -port_count/2;
         let y = 1;
         loop {
-            if !self.is_filled((x,y)) {
+            if !self.is_cell_filled((x,y)) {
                 self.set((x,y), id);
                 return;
             }
@@ -107,14 +161,14 @@ impl Grid {
         let mut x = -port_count/2;
         let y = 1;
         loop {
-            if !self.is_filled((x,y)) {
+            if !self.is_cell_filled((x,y)) {
                 break;
             }
             x += 1;
         }
         x += 1;
         loop {
-            if !self.is_filled((x,y)) {
+            if !self.is_cell_filled((x,y)) {
                 self.set((x,y), id);
                 return;
             }
@@ -129,7 +183,7 @@ impl Grid {
         loop {
             for offset_x in 0..self.approx_w {
                 let x = base_x + offset_x;
-                if !self.is_filled((x,y)) {
+                if !self.is_cell_filled((x,y)) {
                     self.set((x,y), id);
                     return;
                 }
@@ -142,19 +196,20 @@ impl Grid {
 impl IRModule {
     pub fn place_nodes(&mut self) {
         let mut networks: NetRegistry = Default::default();
-        let mut grid = Grid::new(self.nodes.len());
+        self.grid.init(self.nodes.len());
 
+        // Initial placement
         for (i,node) in self.nodes.iter().enumerate() {
             match node {
                 IRNode::Input(_) => {
-                    grid.add_input(i as u32, self.port_count);
+                    self.grid.add_input(i as u32, self.port_count);
                 },
                 IRNode::Output(_,arg) => {
-                    grid.add_output(i as u32, self.port_count);
+                    self.grid.add_output(i as u32, self.port_count);
                     networks.add_link(arg, i as u32);
                 },
                 IRNode::BinOp(lhs,_,rhs) => {
-                    grid.add_node(i as u32);
+                    self.grid.add_node(i as u32);
                     networks.add_link(lhs, i as u32);
                     networks.add_link(rhs, i as u32);
                 },
@@ -162,7 +217,9 @@ impl IRModule {
             }
         }
 
-        println!("=> {:#?}",networks.list);
-        println!("=> {:#?}",grid.node_positions);
+        // Try to generate links
+        let res = networks.to_links(&self);
+
+        self.links = res.expect("there was an error");
     }
 }
