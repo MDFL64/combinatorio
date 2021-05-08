@@ -171,18 +171,16 @@ impl IRModule {
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
             Expr::UnOp(op,arg) => {
-                // SPECIAL CASE: Negate constants immediately to deal with possible i32::MIN
-                // Do this REGARDLESS of whether constant folding is enabled.
-                if *op == UnaryOp::Negate {
-                    if let Expr::Constant(const_val) = arg.as_ref() {
-                        let negated = -const_val;
-                        let num_32: i32 = negated.try_into().expect("bad constant");
-                        return IRArg::Constant(num_32);
-                    }
-                }
-
                 if *op != UnaryOp::Negate {
                     panic!("unary op nyi");
+                }
+
+                // SPECIAL CASE: Negate constants immediately to deal with possible i32::MIN
+                // Do this REGARDLESS of whether constant folding is enabled.
+                if let Expr::Constant(const_val) = arg.as_ref() {
+                    let negated = -const_val;
+                    let num_32: i32 = negated.try_into().expect("bad constant");
+                    return IRArg::Constant(num_32);
                 }
 
                 // Try normal constant-folding

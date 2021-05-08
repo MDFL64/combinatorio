@@ -15,6 +15,19 @@ pub enum LexToken<'a> {
     OpDiv,
     OpMod,
     OpPower,
+    
+    OpBitOr,
+    OpBitAnd,
+    OpBitXor,
+    OpShiftLeft,
+    OpShiftRight,
+
+    OpCmpEq,
+    OpCmpNeq,
+    OpCmpGt,
+    OpCmpLt,
+    OpCmpGeq,
+    OpCmpLeq,
 
     OpAssign,
     OpComma,
@@ -67,7 +80,8 @@ impl<'a> Iterator for Lexer<'a> {
     
                     Some(LexToken::ident_or_keyword(token_str))
                 } else if c.is_ascii_digit() {
-                    // TODO hexadecimal
+                    // TODO hexadecimal, binary
+                    // TODO _ seperators?
                     // Don't bother handling negatives. All constants are unsigned.
 
                     let token_end = parse_str.find(|c: char| !c.is_ascii_digit())
@@ -82,6 +96,7 @@ impl<'a> Iterator for Lexer<'a> {
                     Some(LexToken::Number(num))
                 } else if c.is_ascii_whitespace() {
                     // TODO line handling?
+                    // Probably use another iterator wrapper if we want that?
                     // skip
                     continue;
                 } else {
@@ -109,7 +124,55 @@ impl<'a> Iterator for Lexer<'a> {
                             }
                         },
 
-                        '=' => Some(LexToken::OpAssign),
+                        '|' => Some(LexToken::OpBitOr),
+                        '&' => Some(LexToken::OpBitAnd),
+                        '^' => Some(LexToken::OpBitXor),
+
+                        '=' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('=') {
+                                self.chars.next();
+                                Some(LexToken::OpCmpEq)
+                            } else {
+                                Some(LexToken::OpAssign)
+                            }
+                        },
+
+                        '!' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('=') {
+                                self.chars.next();
+                                Some(LexToken::OpCmpNeq)
+                            } else {
+                                panic!("Unexpected '!' {:?}, logical not is not supported.",next_char);
+                            }
+                        },
+
+                        '<' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('=') {
+                                self.chars.next();
+                                Some(LexToken::OpCmpLeq)
+                            } else if next_char == Some('<') {
+                                self.chars.next();
+                                Some(LexToken::OpShiftLeft)
+                            } else {
+                                Some(LexToken::OpCmpLt)
+                            }
+                        },
+
+                        '>' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('=') {
+                                self.chars.next();
+                                Some(LexToken::OpCmpGeq)
+                            } else if next_char == Some('>') {
+                                self.chars.next();
+                                Some(LexToken::OpShiftRight)
+                            } else {
+                                Some(LexToken::OpCmpGt)
+                            }
+                        },
 
                         ',' => Some(LexToken::OpComma),
                         ';' => Some(LexToken::OpSemicolon),
