@@ -4,11 +4,11 @@ use std::convert::TryInto;
 use crate::{CompileSettings, common::{BinOp, UnaryOp}};
 use crate::parser::{Module, Statement, Expr};
 
-use self::placement::{Grid, WireLink};
+use self::layout::{Grid, WireLink};
 
 mod select_colors;
 mod select_symbols;
-mod placement;
+mod layout;
 mod to_blueprint;
 
 pub struct IRModule {

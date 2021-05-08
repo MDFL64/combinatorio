@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use rand::Rng;
 
 use crate::common::ConnectType;
 
@@ -28,6 +29,9 @@ impl WireNet {
         let mut open = self.connections.clone();
         let mut closed = vec!(open.pop().expect("invalid net"));
 
+        if open.len() > 20 {
+            println!(">>");
+        }
         while open.len() > 0 {
             let mut min_dist = f32::INFINITY;
             let mut min_pair = None;
@@ -45,7 +49,7 @@ impl WireNet {
             }
     
             if !check_dist(min_dist) {
-                println!("check failed {}",min_dist.sqrt());
+                //println!(" - check failed {}",min_dist.sqrt());
                 return false;
             }
     
@@ -61,12 +65,16 @@ impl WireNet {
             });
             closed.push(o);
         }
+        if closed.len() > 20 {
+            println!("<<");
+        }
 
         return true;
     }
 
     fn correct(&self, module: &mut IRModule) {
-        const LERP_FRACTION: f32 = 0.5;
+        const MIN_FRACTION: f32 = 0.1;
+        const MAX_FRACTION: f32 = 0.9;
 
         fn lerp_pos(start: (i32,i32), end: (i32,i32), f: f32) -> (i32,i32) {
             let x = start.0 + ((end.0 - start.0) as f32 * f).round() as i32;
@@ -87,6 +95,8 @@ impl WireNet {
             (y_sum / self.connections.len() as f32).round() as i32
         );
 
+        let mut rng = rand::thread_rng();
+
         // Get better positions.
         for (id,_) in &self.connections {
             if !module.can_move(*id) {
@@ -98,8 +108,15 @@ impl WireNet {
                 continue;
             }
 
-            let new_pos = lerp_pos(base_pos, mid_pos, LERP_FRACTION);
+            let fraction = MIN_FRACTION + (MAX_FRACTION - MIN_FRACTION) * rng.gen::<f32>();
+            //println!("f = {}",fraction);
+
+            let new_pos = lerp_pos(base_pos, mid_pos, fraction);
             if new_pos == mid_pos {
+                continue;
+            }
+
+            if module.grid.is_cell_reserved(new_pos) {
                 continue;
             }
 
@@ -112,7 +129,7 @@ impl WireNet {
                 module.grid.set(base_pos, old_id);
             }
             module.grid.set(new_pos, *id);
-            println!("swapped {} {:?}",id,old);
+            //println!(" - swapped {} {:?}",id,old);
         }
     }
 }
@@ -163,9 +180,24 @@ impl NetRegistry {
 
     // On success, returns a list of links.
     // On failure, returns a list of bad network IDs.
-    fn to_links(&self, module: &IRModule) -> Result< Vec<WireLink>, Vec<u32> > {
-        let mut out = Vec::new();
+    fn to_links(&self, module: &IRModule, priority_check_list: &Vec<u32>) -> Result< Vec<WireLink>, Vec<u32> > {
         let mut failed = Vec::new();
+        let mut out = Vec::new();
+
+        // check priority list first
+        for i in priority_check_list {
+            let net = &self.list[*i as usize];
+            if !net.to_links(module, &mut out) {
+                failed.push(*i);
+            }
+        }
+
+        // quick exit
+        if failed.len() > 0 {
+            return Err(failed);
+        }
+        out.clear();
+
         for (i, net) in self.list.iter().enumerate() {
             if !net.to_links(module, &mut out) {
                 failed.push(i as u32);
@@ -188,10 +220,7 @@ pub struct Grid {
 }
 
 impl Grid {
-    // POWER
-    // I/O
-    // ...
-    // ...
+
     fn init(&mut self, size: usize) {
 
         self.approx_w = ((size as f32 / 2.0).sqrt() * 2.0).ceil() as i32;
@@ -205,6 +234,12 @@ impl Grid {
 
     fn is_cell_filled(&self, key: (i32,i32)) -> bool {
         self.cell_map.get(&key).is_some()
+    }
+
+    fn is_cell_reserved(&self, key: (i32,i32)) -> bool {
+        let x = key.0 % 18;
+        let y = key.1 % 9;
+        y == 0 && x >= 0 && x <= 1
     }
 
     fn get_id_at(&self, key: (i32,i32)) -> Option<u32> {
@@ -262,7 +297,7 @@ impl Grid {
             let wind_dir = (y & 1) == 1;
             for offset_x in 0..self.approx_w {
                 let x = if wind_dir { base_x + offset_x } else { -base_x - offset_x };
-                if !self.is_cell_filled((x,y)) {
+                if !self.is_cell_filled((x,y)) && !self.is_cell_reserved((x,y)) {
                     self.set((x,y), id);
                     return;
                 }
@@ -273,7 +308,7 @@ impl Grid {
 }
 
 impl IRModule {
-    pub fn place_nodes(&mut self) {
+    pub fn layout_nodes(&mut self) {
         let mut networks: NetRegistry = Default::default();
         self.grid.init(self.nodes.len());
 
@@ -300,18 +335,23 @@ impl IRModule {
             }
         }
 
+        let mut pass_n = 1;
+        let mut priority_list = Vec::new();
         loop {
             // Try to generate links
-            let res = networks.to_links(&self);
+            let res = networks.to_links(&self, &priority_list);
+            let err_count = res.as_ref().err().map(|list| list.len()).unwrap_or(0);
+            println!("Layout pass {}: {} error(s).",pass_n,err_count);
             if let Err(bad_nets) = res {
-                println!("still bad? {:?}",bad_nets);
-                for net_id in bad_nets {
-                    networks.list[net_id as usize].correct(self);
+                for net_id in &bad_nets {
+                    networks.list[*net_id as usize].correct(self);
                 }
+                priority_list = bad_nets;
             } else {
                 self.links = res.unwrap();
                 return;
             }
+            pass_n += 1;
         }
     }
 

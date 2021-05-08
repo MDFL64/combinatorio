@@ -19,7 +19,7 @@ pub fn read_blueprint(blueprint: &str) -> Blueprint {
 pub fn write_blueprint(blueprint: Blueprint) -> String {
     let wrapper = BlueprintWrapper{blueprint};
     let json = serde_json::to_string(&wrapper).expect("serialize failed");
-    println!("=> {}",json);
+    //println!("=> {}",json);
 
     let mut compress = ZlibEncoder::new(Vec::new(), Compression::best());
     compress.write_all(json.as_bytes()).unwrap();

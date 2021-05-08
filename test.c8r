@@ -2,7 +2,25 @@
     //output(a*a + b*b);
 
 mod test(a) {
-    let b = a+a+a+a+a+a+a+a+a+a;
-    let c = b+b+b+b+b+b+b+b+b+b;
-    output(c);
+    let b = a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a +
+            a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a + a+a+a+a+a+a+a+a+a+a;
+    output(b);
 }
