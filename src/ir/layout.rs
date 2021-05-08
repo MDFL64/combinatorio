@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use rand::Rng;
 
-use crate::common::ConnectType;
+use crate::{common::ConnectType, disjoint_set::DisjointSet};
 
 use super::{IRArg, IRModule, IRNode, WireColor};
 
@@ -26,50 +26,49 @@ fn check_dist(sq_dist: f32) -> bool {
 impl WireNet {
     fn to_links(&self, module: &IRModule, out: &mut Vec<WireLink>) -> bool {
         
-        let mut open = self.connections.clone();
-        let mut closed = vec!(open.pop().expect("invalid net"));
+        let mut subnet_ids = DisjointSet::new(self.connections.len());
 
-        if open.len() > 20 {
-            println!(">>");
-        }
-        while open.len() > 0 {
-            let mut min_dist = f32::INFINITY;
-            let mut min_pair = None;
+        loop {
+            let mut link_count = 0;
+            for id_a in 0..self.connections.len() {
+                let net_id_a = subnet_ids.get(id_a);
 
-            for (o_i,(o,_)) in open.iter().enumerate() {
-                for (c_i,(c,_)) in closed.iter().enumerate() {
-                    let pos_o = module.get_true_pos(*o);
-                    let pos_c = module.get_true_pos(*c);
-                    let dist  = square_dist(pos_o,pos_c);
-                    if dist < min_dist {
-                        min_dist = dist;
-                        min_pair = Some((o_i,c_i));
+                for id_b in (id_a+1)..self.connections.len() {
+                    let net_id_b = subnet_ids.get(id_b);
+
+                    // Don't merge matching nets
+                    if net_id_a == net_id_b {
+                        continue;
                     }
+
+                    let pos_a = module.get_true_pos(self.connections[id_a].0);
+                    let pos_b = module.get_true_pos(self.connections[id_b].0);
+
+                    if !check_dist(square_dist(pos_a,pos_b)) {
+                        continue;
+                    }
+
+                    link_count += 1;
+
+                    subnet_ids.merge(net_id_a, net_id_b);
+
+                    out.push(WireLink{
+                        color: self.color,
+                        a: self.connections[id_a].clone(),
+                        b: self.connections[id_b].clone()
+                    });
+                    break;
                 }
             }
-    
-            if !check_dist(min_dist) {
-                //println!(" - check failed {}",min_dist.sqrt());
+
+            if subnet_ids.count_sets() == 1 {
+                return true;
+            }
+
+            if link_count == 0 {
                 return false;
             }
-    
-            let (o_i,c_i) = min_pair.expect("invalid net");
-    
-            let o = open.remove(o_i);
-            let c = closed[c_i].clone();
-    
-            out.push(WireLink{
-                color: self.color,
-                a: o.clone(),
-                b: c
-            });
-            closed.push(o);
         }
-        if closed.len() > 20 {
-            println!("<<");
-        }
-
-        return true;
     }
 
     fn correct(&self, module: &mut IRModule) {
@@ -237,9 +236,9 @@ impl Grid {
     }
 
     fn is_cell_reserved(&self, key: (i32,i32)) -> bool {
-        let x = key.0 % 18;
-        let y = key.1 % 9;
-        y == 0 && x >= 0 && x <= 1
+        let x = key.0.rem_euclid(18);
+        let y = key.1.rem_euclid(9);
+        y == 0 && x <= 1
     }
 
     fn get_id_at(&self, key: (i32,i32)) -> Option<u32> {

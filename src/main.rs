@@ -6,6 +6,7 @@ mod lexer;
 mod parser;
 mod ir;
 mod blueprint;
+mod disjoint_set;
 
 pub struct CompileSettings {
     fold_constants: bool
