@@ -74,11 +74,11 @@ impl BlueprintBuilder{
         id
     }
 
-    fn add_pole(&mut self, pos: (f32,f32)) -> usize {
+    fn add_pole(&mut self, pos: (f32,f32), substation: bool) -> usize {
         let id = self.entities.len()+1;
         self.entities.push(Entity{
             entity_number: id as u32,
-            name: "medium-electric-pole".to_owned(),
+            name: if substation { "substation" } else { "medium-electric-pole"}.to_owned(),
             position: make_pos(pos),
             direction: 4,
 
@@ -150,6 +150,20 @@ impl BlueprintBuilder{
         }
     }
 
+    fn get_bounds(&self) -> [f32;4] {
+        let mut max_x = f32::MIN;
+        let mut min_x = f32::MAX;
+        let mut max_y = max_x;
+        let mut min_y = min_x;
+        for ent in &self.entities {
+            max_x = max_x.max(ent.position.x);
+            min_x = min_x.min(ent.position.x);
+            max_y = max_y.max(ent.position.y);
+            min_y = min_y.min(ent.position.y);
+        }
+        [min_x,min_y,max_x,max_y]
+    }
+
     fn finish(self) -> Blueprint {
         Blueprint{
             entities: self.entities
@@ -184,7 +198,7 @@ impl IRModule {
                     if let IRArg::Constant(n) = arg {
                         ent_ids[id] = builder.add_constant(pos,0,*n);
                     } else {
-                        ent_ids[id] = builder.add_pole(pos);
+                        ent_ids[id] = builder.add_pole(pos,false);
                     }
                 },
                 IRNode::BinOp(lhs,op,rhs) => {
@@ -219,6 +233,30 @@ impl IRModule {
                 (ent_ids[b_id as usize],b_ty)
             );
         }
+
+        let [x_min,_y_min,x_max,y_max] = builder.get_bounds();
+
+        let mut x_pole_start = 0;
+        let mut x_pole_end = 0;
+        let y_pole_start = 0;
+        let mut y_pole_end = 0;
+        while 0.5 + x_pole_start as f32 * 18.0 - 9.0 > x_min {
+            x_pole_start -= 1;
+        }
+        while 0.5 + x_pole_end as f32 * 18.0 + 9.0 < x_max {
+            x_pole_end += 1;
+        }
+        while 0.5 + y_pole_end as f32 * 18.0 + 9.0 < y_max {
+            y_pole_end += 1;
+        }
+
+        for y in y_pole_start..=y_pole_end {
+            for x in x_pole_start..=x_pole_end {
+                builder.add_pole((0.5+18.0*x as f32,0.5+18.0*y as f32), true);
+            }
+        }
+
+        println!("BOUNDS = {} {} {}",x_pole_start,x_pole_end,y_pole_end);
 
         builder.finish()
     }
