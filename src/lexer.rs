@@ -71,7 +71,7 @@ impl<'a> Iterator for Lexer<'a> {
             
             return if let Some(c) = self.chars.next() {
                 if c.is_ascii_alphabetic() {
-                    let token_end = parse_str.find(|c: char| !c.is_ascii_alphabetic())
+                    let token_end = parse_str.find(|c: char| !c.is_ascii_alphanumeric())
                         .unwrap_or(parse_str.len());
                     let token_str = &parse_str[0..token_end];
                     let remainder_str = &parse_str[token_end..];

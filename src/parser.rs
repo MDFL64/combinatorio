@@ -163,6 +163,12 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             LexToken::OpMod => BinOp::Mod,
             LexToken::OpPower => BinOp::Power,
 
+            LexToken::OpBitAnd => BinOp::BitAnd,
+            LexToken::OpBitOr => BinOp::BitOr,
+            LexToken::OpBitXor => BinOp::BitXor,
+            LexToken::OpShiftLeft => BinOp::ShiftLeft,
+            LexToken::OpShiftRight => BinOp::ShiftRight,
+
             // sane expression terminators
             LexToken::OpParenClose |
             LexToken::OpSemicolon |

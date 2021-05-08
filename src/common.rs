@@ -5,15 +5,30 @@ pub enum BinOp {
     Mul,
     Div,
     Mod,
-    Power
+    Power,
+
+    BitAnd,
+    BitOr,
+    BitXor,
+
+    ShiftLeft,
+    ShiftRight
 }
 
 impl BinOp {
     pub fn prec(&self) -> u32 {
+        // For better or worse, based on c operator precedence.
+        // https://en.cppreference.com/w/c/language/operator_precedence
         match self {
-            BinOp::Add | BinOp::Sub => 3,
+            BinOp::Power => 1,
             BinOp::Mul | BinOp::Div | BinOp::Mod => 2,
-            BinOp::Power => 1
+            BinOp::Add | BinOp::Sub => 3,
+            BinOp::ShiftLeft | BinOp::ShiftRight => 4,
+            // compare 5
+            // compare 6
+            BinOp::BitAnd => 7,
+            BinOp::BitXor => 8,
+            BinOp::BitOr => 9,
         }
     }
 
@@ -24,7 +39,14 @@ impl BinOp {
             BinOp::Mul => "*",
             BinOp::Div => "/",
             BinOp::Mod => "%",
-            BinOp::Power => "^"
+            BinOp::Power => "^",
+
+            BinOp::BitAnd => "AND",
+            BinOp::BitOr => "OR",
+            BinOp::BitXor => "XOR",
+
+            BinOp::ShiftLeft => "<<",
+            BinOp::ShiftRight => ">>",
         }
     }
 
@@ -39,7 +61,8 @@ impl BinOp {
                 panic!("negative pow")
             } else {
                 lhs.wrapping_pow(rhs as u32)
-            }
+            },
+            _ => panic!("todo fold {:?}",self)
         }
     }
 }
@@ -47,7 +70,8 @@ impl BinOp {
 #[derive(Debug,Clone,Copy,PartialEq)]
 pub enum UnaryOp {
     Negate,
-    BitNot // '~' only, to avoid confusion with '!'
+    // Do we even want other unary ops? logical not would probably be the most useful, and it could be optimized
+    BitNot
 }
 
 #[derive(Debug,Hash,PartialEq,Eq,Clone)]
