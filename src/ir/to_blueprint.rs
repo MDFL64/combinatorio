@@ -256,8 +256,6 @@ impl IRModule {
             }
         }
 
-        println!("BOUNDS = {} {} {}",x_pole_start,x_pole_end,y_pole_end);
-
         builder.finish()
     }
 }

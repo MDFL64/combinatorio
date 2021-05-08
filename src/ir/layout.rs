@@ -311,6 +311,7 @@ impl IRModule {
         let mut networks: NetRegistry = Default::default();
         self.grid.init(self.nodes.len());
 
+        print!("Layout... ");
         // Initial placement
         for (i,node) in self.nodes.iter().enumerate() {
             match node {
@@ -339,8 +340,8 @@ impl IRModule {
         loop {
             // Try to generate links
             let res = networks.to_links(&self, &priority_list);
-            let err_count = res.as_ref().err().map(|list| list.len()).unwrap_or(0);
-            println!("Layout pass {}: {} error(s).",pass_n,err_count);
+            //let err_count = res.as_ref().err().map(|list| list.len()).unwrap_or(0);
+
             if let Err(bad_nets) = res {
                 for net_id in &bad_nets {
                     networks.list[*net_id as usize].correct(self);
@@ -348,10 +349,11 @@ impl IRModule {
                 priority_list = bad_nets;
             } else {
                 self.links = res.unwrap();
-                return;
+                break;
             }
             pass_n += 1;
         }
+        println!("Done in {} passes.",pass_n);
     }
 
     fn can_move(&self, id: u32) -> bool {

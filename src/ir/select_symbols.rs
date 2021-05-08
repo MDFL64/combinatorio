@@ -31,6 +31,7 @@ impl IRModule {
         self.out_symbols.resize(self.nodes.len(),0);
         let mut pass_num = 1;
         let mut errors = 0;
+        print!("Symbol selection... ");
         loop {
             for cons in &constraints {
                 match cons {
@@ -44,7 +45,6 @@ impl IRModule {
                     _ => panic!("todo handle constraint {:?}",cons)
                 }
             }
-            println!("Symbol Pass {}: {} error(s).",pass_num,errors);
             if errors == 0 {
                 break;
             }
@@ -54,5 +54,6 @@ impl IRModule {
                 panic!("too many passes");
             }
         }
+        println!("Done in {} passes.",pass_num);
     }
 }
