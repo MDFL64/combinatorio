@@ -12,7 +12,7 @@ impl IRModule {
     pub fn select_symbols(&mut self) {
         let mut constraints: Vec<SymbolConstraint> = Vec::new();
 
-        for node in &self.nodes {
+        for (out_i,node) in self.nodes.iter().enumerate() {
             match node {
                 IRNode::Input(_) => (),
                 IRNode::Output(..) => (),
@@ -22,6 +22,16 @@ impl IRModule {
                     if let IRArg::Link(lhs_in,_) = lhs {
                         if let IRArg::Link(rhs_in,_) = rhs {
                             constraints.push(SymbolConstraint::NotEqual(*lhs_in,*rhs_in));
+                        }
+                    }
+                },
+                IRNode::BinOpCmpGate(lhs,_,_,gated) => {
+                    assert!(lhs.is_link());
+                    assert!(gated.is_link());
+                    if let IRArg::Link(lhs_in,_) = lhs {
+                        if let IRArg::Link(gated_in,_) = gated {
+                            constraints.push(SymbolConstraint::NotEqual(*lhs_in,*gated_in));
+                            constraints.push(SymbolConstraint::Equal(*gated_in,out_i as u32))
                         }
                     }
                 },
@@ -41,6 +51,13 @@ impl IRModule {
                             errors += 1;
                             // TODO should we pick a symbol to increment at random?
                             self.out_symbols[*b as usize] += 1;
+                        }
+                    },
+                    SymbolConstraint::Equal(a,b) => {
+                        if self.out_symbols[*a as usize] != self.out_symbols[*b as usize] {
+                            errors += 1;
+                            // TODO should we pick a symbol to copy at random?
+                            self.out_symbols[*b as usize] += self.out_symbols[*a as usize];
                         }
                     },
                     _ => panic!("todo handle constraint {:?}",cons)

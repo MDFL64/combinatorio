@@ -23,7 +23,8 @@ pub enum Expr<'a> {
     Ident(&'a str),
     Constant(i64),
     BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>),
-    UnOp(UnaryOp,Box<Expr<'a>>)
+    UnOp(UnaryOp,Box<Expr<'a>>),
+    If(Box<Expr<'a>>,Box<Expr<'a>>,Option<Box<Expr<'a>>>)
 }
 
 struct Parser<'a> {
@@ -221,6 +222,24 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
     match tok {
         // TODO could be a module call!
         LexToken::Ident(id) => Expr::Ident(id),
+        LexToken::KeyIf => {
+            parser.take(LexToken::OpParenOpen);
+            let cond = parse_expr(parser);
+            parser.take(LexToken::OpComma);
+            let val_true = parse_expr(parser);
+            
+            let val_false = if parser.peek() == LexToken::OpComma {
+                parser.take(LexToken::OpComma);
+                let val = parse_expr(parser);
+                parser.take(LexToken::OpParenClose);
+                Some(Box::new(val))
+            } else {
+                parser.take(LexToken::OpParenClose);
+                None
+            };
+
+            Expr::If(Box::new(cond),Box::new(val_true),val_false)
+        },
         LexToken::Number(num) => Expr::Constant(num),
         LexToken::OpParenOpen => {
             // This *can* be done in the normal expression parser without recursion, but it's cleaner to do here.

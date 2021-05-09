@@ -8,6 +8,7 @@ pub enum LexToken<'a> {
     KeyMod,
     KeyOutput,
     KeyLet,
+    KeyIf,
 
     OpAdd,
     OpSub,
@@ -45,6 +46,7 @@ impl<'a> LexToken<'a> {
             "mod" => Self::KeyMod,
             "output" => Self::KeyOutput,
             "let" => Self::KeyLet,
+            "if" => Self::KeyIf,
             _ => Self::Ident(ident)
         }
     }

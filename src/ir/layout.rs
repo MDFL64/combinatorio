@@ -328,6 +328,11 @@ impl IRModule {
                     networks.add_link(lhs, i as u32);
                     networks.add_link(rhs, i as u32);
                 },
+                IRNode::BinOpCmpGate(lhs,_,_,gated) => {
+                    self.grid.add_node(i as u32);
+                    networks.add_link(lhs, i as u32);
+                    networks.add_link(gated, i as u32);
+                },
                 IRNode::BinOpSame(arg,_) => {
                     self.grid.add_node(i as u32);
                     networks.add_link(arg, i as u32);

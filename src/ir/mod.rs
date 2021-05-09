@@ -31,6 +31,7 @@ enum IRNode {
     BinOp(IRArg,BinOp,IRArg),
     BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
     BinOpCmp(IRArg,BinOp,IRArg), // <- LHS *MUST* be a signal
+    BinOpCmpGate(IRArg,BinOp,i32,IRArg), // <- LHS *MUST* be a signal, RHS *MUST* be a constant, GATED *MUST* be a signal
     Multi(Vec<IRArg>) // <- still not sure how to actually handle these
 }
 
@@ -94,6 +95,7 @@ impl IRModule {
         let offset_y = match node {
             IRNode::BinOp(..) |
             IRNode::BinOpCmp(..) |
+            IRNode::BinOpCmpGate(..) |
             IRNode::BinOpSame(..) => 0.5,
             IRNode::Input(..) |
             IRNode::Output(..) |
@@ -173,7 +175,7 @@ impl IRModule {
                         } else if rex.is_link() {
                             self.nodes.push(IRNode::BinOpCmp(rex,op.flip(),lex));
                         } else {
-                            panic!("todo stupid constant comparison");
+                            panic!("todo stupid constant comparison, add a const combinator");
                         }
                     }
                 } else {
@@ -212,7 +214,16 @@ impl IRModule {
                 self.nodes.push(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg));
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
-            //_ => panic!("todo handle expr {:?}",expr)
+            Expr::If(cond,val_true,val_false) => {
+                assert!(val_false.is_none()); // TODO
+                let arg_cond = self.add_expr(cond);
+                assert!(arg_cond.is_link()); // TODO
+                let arg_true = self.add_expr(val_true);
+                assert!(arg_true.is_link()); // TODO
+
+                self.nodes.push(IRNode::BinOpCmpGate(arg_cond,BinOp::CmpNeq,0,arg_true));
+                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+            }
         }
     }
 }

@@ -272,6 +272,21 @@ impl IRModule {
                         panic!("Bad compare, constant on LHS.");
                     }
                 },
+                IRNode::BinOpCmpGate(lhs,op,rhs,_gated) => {
+                    if let IRArg::Link(lhs_id,_) = lhs {
+                        let lhs_symbol = self.out_symbols[*lhs_id as usize];
+                        let pos = self.get_true_pos(id as u32);
+                        ent_ids[id] = builder.add_decider(pos,
+                            op.to_str().to_owned(),
+                            lhs_symbol,
+                            SymbolOrConstant::Constant(*rhs),
+                            self.out_symbols[id],
+                            true
+                        );
+                    } else {
+                        panic!("Bad compare, constant on LHS.");
+                    }
+                },
                 _ => panic!("todo build {:?}",node)
             }
         }
