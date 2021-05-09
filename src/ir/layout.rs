@@ -147,8 +147,20 @@ struct NetRegistry {
 }
 
 impl NetRegistry {
-    fn add_link(&mut self, src_arg: &IRArg, dest_id: u32) {
-        if let IRArg::Link(src_id,color) = src_arg {
+    fn add_link(&mut self, src_arg: &IRArg, dest_id: u32, module: &IRModule) {
+        if let IRArg::Link(src_id,color) = src_arg {            
+            if let IRNode::MultiDriver(args) = &module.nodes[*src_id as usize] {
+                for arg in args {
+                    let fixed_arg = if let IRArg::Link(src_id,_) = arg {
+                        IRArg::Link(*src_id, *color)
+                    } else {
+                        panic!("raw constants not permitted in multi-driver");
+                    };
+                    self.add_link(&fixed_arg, dest_id, module);
+                }
+                return;
+            }
+
             let src_key = (*src_id,ConnectType::Out,*color);
             let dest_key = (dest_id,ConnectType::In,*color);
             let src_net_exists = self.map.contains_key(&src_key);
@@ -162,7 +174,10 @@ impl NetRegistry {
                 net.connections.push((dest_id,ConnectType::In));
                 self.map.insert(dest_key, net_id);
             } else if dest_net_exists {
-                panic!("dest exists");
+                let net_id = *self.map.get(&dest_key).unwrap();
+                let net = &mut self.list[net_id];
+                net.connections.push((*src_id,ConnectType::Out));
+                self.map.insert(src_key, net_id);
             } else {
                 let net = WireNet{
                     color: *color,
@@ -323,23 +338,24 @@ impl IRModule {
                 },
                 IRNode::Output(_,arg) => {
                     self.grid.add_output(i as u32, self.port_count);
-                    networks.add_link(arg, i as u32);
+                    networks.add_link(arg, i as u32, self);
                 },
                 IRNode::BinOp(lhs,_,rhs) | 
                 IRNode::BinOpCmp(lhs,_,rhs) => {
                     self.grid.add_node(i as u32);
-                    networks.add_link(lhs, i as u32);
-                    networks.add_link(rhs, i as u32);
+                    networks.add_link(lhs, i as u32, self);
+                    networks.add_link(rhs, i as u32, self);
                 },
                 IRNode::BinOpCmpGate(lhs,_,_,gated) => {
                     self.grid.add_node(i as u32);
-                    networks.add_link(lhs, i as u32);
-                    networks.add_link(gated, i as u32);
+                    networks.add_link(lhs, i as u32, self);
+                    networks.add_link(gated, i as u32, self);
                 },
                 IRNode::BinOpSame(arg,_) => {
                     self.grid.add_node(i as u32);
-                    networks.add_link(arg, i as u32);
+                    networks.add_link(arg, i as u32, self);
                 },
+                IRNode::MultiDriver(_) => (), // actual networking is handled in add_link
                 _ => panic!("todo network {:?}",node)
             }
         }

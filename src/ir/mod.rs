@@ -32,7 +32,7 @@ enum IRNode {
     BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
     BinOpCmp(IRArg,BinOp,IRArg), // <- LHS *MUST* be a signal
     BinOpCmpGate(IRArg,BinOp,i32,IRArg), // <- LHS *MUST* be a signal, RHS *MUST* be a constant, GATED *MUST* be a signal
-    Multi(Vec<IRArg>) // <- still not sure how to actually handle these
+    MultiDriver(Vec<IRArg>) // <- still not sure how to actually handle these
 }
 
 #[derive(Debug,Clone,PartialEq)]
@@ -240,7 +240,7 @@ impl IRModule {
                     self.nodes.push(IRNode::BinOpCmpGate(arg_cond,BinOp::CmpEq,0,arg_false));
                     let false_result = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
 
-                    self.nodes.push(IRNode::Multi(vec!(true_result,false_result)));
+                    self.nodes.push(IRNode::MultiDriver(vec!(true_result,false_result)));
                     IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
                 } else {
                     true_result

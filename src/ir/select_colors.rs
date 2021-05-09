@@ -55,6 +55,7 @@ impl IRModule {
                 IRNode::Output(_,arg) => {
                     update_color_for_arg(arg , WireColor::None, &mut out_color_counts);
                 },
+                IRNode::MultiDriver(_) => (), // use colors determined by downstream nodes
                 _ => panic!("coloring not implemented for {:?}",node)
             }
         }

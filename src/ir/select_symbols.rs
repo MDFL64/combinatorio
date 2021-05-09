@@ -32,11 +32,20 @@ impl IRModule {
                     if let IRArg::Link(lhs_in,_) = lhs {
                         if let IRArg::Link(gated_in,_) = gated {
                             constraints.push(SymbolConstraint::NotEqual(*lhs_in,*gated_in));
-                            constraints.push(SymbolConstraint::Equal(*gated_in,out_i as u32))
+                            constraints.push(SymbolConstraint::Equal(*gated_in,out_i as u32));
                         }
                     }
                 },
-                _ => panic!("todo symbol constraint {:?}",node)
+                IRNode::MultiDriver(list) => {
+                    // all input symbols must match
+                    // TODO it's probably going to work way better to add a MultiEqual constraint that can update everything in one step
+                    for arg in list {
+                        if let IRArg::Link(arg_in,_) = arg {
+                            constraints.push(SymbolConstraint::Equal(*arg_in,out_i as u32));
+                        }
+                    }
+                },
+                //_ => panic!("todo symbol constraint {:?}",node)
             }
         }
 
