@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::blueprint::{ArithmeticConditions, Blueprint, Connection, ControlBehavior, Entity, Filter, Position, Signal};
+use crate::blueprint::{ArithmeticConditions, Blueprint, Connection, ControlBehavior, DeciderConditions, Entity, Filter, Position, Signal};
 
 use super::{IRArg, IRModule, IRNode, WireColor};
 use crate::common::ConnectType;
@@ -19,14 +19,18 @@ fn symbol_to_signal(symbol: u32) -> Signal {
         0 => Signal{cat:"virtual".to_owned(),name:"signal-A".to_owned()},
         1 => Signal{cat:"virtual".to_owned(),name:"signal-B".to_owned()},
         2 => Signal{cat:"virtual".to_owned(),name:"signal-C".to_owned()},
-        _ => panic!("can't get symbol for {}",symbol)
+        3 => Signal{cat:"virtual".to_owned(),name:"signal-D".to_owned()},
+        4 => Signal{cat:"virtual".to_owned(),name:"signal-E".to_owned()},
+        5 => Signal{cat:"virtual".to_owned(),name:"signal-F".to_owned()},
+        6 => Signal{cat:"virtual".to_owned(),name:"signal-G".to_owned()},
+        _ => panic!("can't get signal for {}, please add more signals",symbol)
     }
 }
 
 fn get_circuit_id(ent_type: &str, connect_type: ConnectType) -> u32 {
     match ent_type {
         "constant-combinator" | "medium-electric-pole" => 1,
-        "arithmetic-combinator" => match connect_type {
+        "arithmetic-combinator" | "decider-combinator" => match connect_type {
             ConnectType::In => 1,
             ConnectType::Out => 2
         },
@@ -68,6 +72,7 @@ impl BlueprintBuilder{
             connections: Some(HashMap::new()),
             control_behavior: ControlBehavior{
                 arithmetic_conditions: None,
+                decider_conditions: None,
                 filters: Some(vec!(Filter{index:1,count,signal}))
             }
         });
@@ -85,6 +90,7 @@ impl BlueprintBuilder{
             connections: Some(HashMap::new()),
             control_behavior: ControlBehavior{
                 arithmetic_conditions: None,
+                decider_conditions: None,
                 filters: None
             }
         });
@@ -114,6 +120,37 @@ impl BlueprintBuilder{
                     second_signal,
                     output_signal
                 }),
+                decider_conditions: None,
+                filters: None
+            }
+        });
+        id
+    }
+
+    fn add_decider(&mut self, pos: (f32,f32), comparator: String, lhs_symbol: u32, rhs: SymbolOrConstant, out_symbol: u32, copy_count_from_input: bool) -> usize {
+        let id = self.entities.len()+1;
+
+        let first_signal = symbol_to_signal(lhs_symbol);
+        let (second_signal,constant) = rhs.unpack();
+        let output_signal = Some(symbol_to_signal(out_symbol));
+
+        self.entities.push(Entity{
+            entity_number: id as u32,
+            name: "decider-combinator".to_owned(),
+            position: make_pos(pos),
+            direction: 4,
+
+            connections: Some(HashMap::new()),
+            control_behavior: ControlBehavior{
+                decider_conditions: Some(DeciderConditions{
+                    comparator,
+                    constant,
+                    first_signal,
+                    second_signal,
+                    output_signal,
+                    copy_count_from_input
+                }),
+                arithmetic_conditions: None,
                 filters: None
             }
         });
@@ -219,6 +256,21 @@ impl IRModule {
                         arg_val,
                         self.out_symbols[id]
                     );
+                },
+                IRNode::BinOpCmp(lhs,op,rhs) => {
+                    if let IRArg::Link(lhs_id,_) = lhs {
+                        let lhs_symbol = self.out_symbols[*lhs_id as usize];
+                        let pos = self.get_true_pos(id as u32);
+                        ent_ids[id] = builder.add_decider(pos,
+                            op.to_str().to_owned(),
+                            lhs_symbol,
+                            self.get_arg_symbol_or_const(rhs),
+                            self.out_symbols[id],
+                            false
+                        );
+                    } else {
+                        panic!("Bad compare, constant on LHS.");
+                    }
                 },
                 _ => panic!("todo build {:?}",node)
             }

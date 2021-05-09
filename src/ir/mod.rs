@@ -30,6 +30,7 @@ enum IRNode {
     Constant(i32), // <- totally redundant??? there may be some niche situations it's needed
     BinOp(IRArg,BinOp,IRArg),
     BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
+    BinOpCmp(IRArg,BinOp,IRArg), // <- LHS *MUST* be a signal
     Multi(Vec<IRArg>) // <- still not sure how to actually handle these
 }
 
@@ -92,6 +93,7 @@ impl IRModule {
         let node = &self.nodes[id as usize];
         let offset_y = match node {
             IRNode::BinOp(..) |
+            IRNode::BinOpCmp(..) |
             IRNode::BinOpSame(..) => 0.5,
             IRNode::Input(..) |
             IRNode::Output(..) |
@@ -152,7 +154,6 @@ impl IRModule {
                 let lex = self.add_expr(lhs);
                 let rex = self.add_expr(rhs);
 
-                // TODO constant folding
                 if self.settings.fold_constants {
                     if let IRArg::Constant(lc) = lex {
                         if let IRArg::Constant(rc) = rex {
@@ -162,11 +163,27 @@ impl IRModule {
                     }
                 }
                 
-                if lex.is_link() && lex == rex {
-                    self.nodes.push(IRNode::BinOpSame(lex,*op));
+                if op.is_compare() {
+                    if lex.is_link() && lex == rex {
+                        // We can and should ALWAYS fold cases like a == b, etc.
+                        panic!("todo fold same compare");
+                    } else {
+                        if lex.is_link() {
+                            self.nodes.push(IRNode::BinOpCmp(lex,*op,rex));
+                        } else if rex.is_link() {
+                            self.nodes.push(IRNode::BinOpCmp(rex,op.flip(),lex));
+                        } else {
+                            panic!("todo stupid constant comparison");
+                        }
+                    }
                 } else {
-                    self.nodes.push(IRNode::BinOp(lex,*op,rex));
+                    if lex.is_link() && lex == rex {
+                        self.nodes.push(IRNode::BinOpSame(lex,*op));
+                    } else {
+                        self.nodes.push(IRNode::BinOp(lex,*op,rex));
+                    }
                 }
+
 
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },

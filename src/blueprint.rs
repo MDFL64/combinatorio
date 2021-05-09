@@ -53,6 +53,8 @@ pub struct ControlBehavior {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arithmetic_conditions: Option<ArithmeticConditions>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub decider_conditions: Option<DeciderConditions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub filters: Option<Vec<Filter>>
 }
 
@@ -69,6 +71,19 @@ pub struct ArithmeticConditions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_signal: Option<Signal>,
     pub operation: String
+}
+
+#[derive(Debug,Serialize,Deserialize)]
+pub struct DeciderConditions {
+    pub first_signal: Signal,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub second_signal: Option<Signal>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub constant: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_signal: Option<Signal>,
+    pub comparator: String,
+    pub copy_count_from_input: bool
 }
 
 #[derive(Debug,Serialize,Deserialize)]

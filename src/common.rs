@@ -12,7 +12,14 @@ pub enum BinOp {
     BitXor,
 
     ShiftLeft,
-    ShiftRight
+    ShiftRight,
+
+    CmpEq,
+    CmpNeq,
+    CmpLt,
+    CmpGt,
+    CmpLeq,
+    CmpGeq
 }
 
 impl BinOp {
@@ -24,8 +31,8 @@ impl BinOp {
             BinOp::Mul | BinOp::Div | BinOp::Mod => 2,
             BinOp::Add | BinOp::Sub => 3,
             BinOp::ShiftLeft | BinOp::ShiftRight => 4,
-            // compare 5
-            // compare 6
+            BinOp::CmpLt | BinOp::CmpGt | BinOp::CmpLeq | BinOp::CmpGeq => 5,
+            BinOp::CmpEq | BinOp::CmpNeq => 6,
             BinOp::BitAnd => 7,
             BinOp::BitXor => 8,
             BinOp::BitOr => 9,
@@ -47,6 +54,14 @@ impl BinOp {
 
             BinOp::ShiftLeft => "<<",
             BinOp::ShiftRight => ">>",
+
+            BinOp::CmpEq => "=",
+            BinOp::CmpNeq => "!=",
+
+            BinOp::CmpGt => ">",
+            BinOp::CmpLt => "<",
+            BinOp::CmpGeq => ">=",
+            BinOp::CmpLeq => "<=",
         }
     }
 
@@ -63,6 +78,26 @@ impl BinOp {
                 lhs.wrapping_pow(rhs as u32)
             },
             _ => panic!("todo fold {:?}",self)
+        }
+    }
+
+    pub fn is_compare(&self) -> bool {
+        match self {
+            BinOp::CmpLt | BinOp::CmpGt | BinOp::CmpLeq | BinOp::CmpGeq |
+            BinOp::CmpEq | BinOp::CmpNeq => true,
+            _ => false
+        }
+    }
+
+    pub fn flip(&self) -> BinOp {
+        match self {
+            BinOp::CmpEq => BinOp::CmpEq,
+            BinOp::CmpNeq => BinOp::CmpNeq,
+            BinOp::CmpLt => BinOp::CmpGt,
+            BinOp::CmpGt => BinOp::CmpLt,
+            BinOp::CmpLeq => BinOp::CmpGeq,
+            BinOp::CmpGeq => BinOp::CmpLeq,
+            _ => panic!("attempt to flip unflippable operator {:?}",self)
         }
     }
 }

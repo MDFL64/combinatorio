@@ -17,7 +17,8 @@ impl IRModule {
                 IRNode::Input(_) => (),
                 IRNode::Output(..) => (),
                 IRNode::BinOpSame(..) => (),
-                IRNode::BinOp(lhs,_,rhs) => {
+                IRNode::BinOp(lhs,_,rhs) |
+                IRNode::BinOpCmp(lhs,_,rhs) => {
                     if let IRArg::Link(lhs_in,_) = lhs {
                         if let IRArg::Link(rhs_in,_) = rhs {
                             constraints.push(SymbolConstraint::NotEqual(*lhs_in,*rhs_in));

@@ -2,10 +2,5 @@
     //output(a*a + b*b);
 
 mod test(d1,d2,d3,d4) {
-    let a = (d1 & 1);
-    let b = (d2 & 1) << 1;
-    let c = (d3 & 1) << 2;
-    let d = (d4 & 1) << 3;
-
-    output(a | b | c | d);
+    output(d1 == d1);
 }

@@ -42,7 +42,8 @@ impl IRModule {
         for node in &mut self.nodes {
             match node {
                 IRNode::Input(_) => (),
-                IRNode::BinOp(lhs,_,rhs) => {
+                IRNode::BinOp(lhs,_,rhs) |
+                IRNode::BinOpCmp(lhs,_,rhs) => {
                     let forbid_color = update_color_for_arg(lhs,WireColor::None, &mut out_color_counts);
                     update_color_for_arg(rhs , forbid_color, &mut out_color_counts);
                 },
