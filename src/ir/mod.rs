@@ -220,34 +220,65 @@ impl IRModule {
                 // TODO folding
 
                 let arg_cond = self.add_expr(cond);
-                assert!(arg_cond.is_link()); // TODO make const node
-                let mut arg_true = self.add_expr(val_true);
+                let arg_true = self.add_expr(val_true);
 
-                // Gated value *MUST* be a result.
-                if let IRArg::Constant(n) = arg_true {
-                    arg_true = self.add_const_node(n);
+                if let IRArg::Link(cond_id,_) = arg_cond {
+                    if let IRNode::BinOpCmp(lhs,op,rhs) = &self.nodes[cond_id as usize] {
+                        let true_result = self.add_compare_gate(lhs.clone(), op.clone(), rhs.clone(), arg_true);
+
+                        if let Some(val_false) = val_false {
+                            panic!("todo direct false");
+                        } else {
+                            return true_result;
+                        }
+                    }
                 }
 
-                self.nodes.push(IRNode::BinOpCmpGate(arg_cond.clone(),BinOp::CmpNeq,0,arg_true));
-                let true_result = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
+                let arg_zero = IRArg::Constant(0);
+
+                let true_result = self.add_compare_gate(arg_cond.clone(),BinOp::CmpNeq,arg_zero.clone(),arg_true);
 
                 if let Some(val_false) = val_false {
-                    let mut arg_false = self.add_expr(val_false);
+                    let arg_false = self.add_expr(val_false);
 
-                    // Gated value *MUST* be a result.
-                    if let IRArg::Constant(n) = arg_false {
-                        arg_false = self.add_const_node(n);
-                    }
-
-                    self.nodes.push(IRNode::BinOpCmpGate(arg_cond,BinOp::CmpEq,0,arg_false));
-                    let false_result = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
+                    let false_result = self.add_compare_gate(arg_cond,BinOp::CmpEq,arg_zero,arg_false);
 
                     self.nodes.push(IRNode::MultiDriver(vec!(true_result,false_result)));
                     IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
                 } else {
                     true_result
                 }
+            },
+            Expr::Match(expr_in,match_list) => {
+                let arg_in = self.add_expr(expr_in);
+
+                let mut results = Vec::new();
+                for (expr_test,expr_res) in match_list {
+                    let arg_test = self.add_expr(expr_test);
+                    let arg_res = self.add_expr(expr_res);
+                    results.push(self.add_compare_gate(arg_in.clone(), BinOp::CmpEq, arg_test, arg_res));
+                }
+
+                assert!(results.len() > 1); // TODO fall back to single arg or const 0 on failure
+                self.nodes.push(IRNode::MultiDriver(results));
+                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             }
+        }
+    }
+
+    fn add_compare_gate(&mut self, lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
+        assert!(lhs.is_link()); // TODO make const node
+
+        if let IRArg::Constant(rhs_n) = rhs {
+            // Gated value *MUST* be a link.
+            if let IRArg::Constant(n) = gated {
+                gated = self.add_const_node(n);
+            }
+    
+            self.nodes.push(IRNode::BinOpCmpGate(lhs,op,rhs_n,gated));
+            IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+        } else {
+            panic!("todo problematic compare gate");
         }
     }
 

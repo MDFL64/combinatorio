@@ -24,7 +24,8 @@ pub enum Expr<'a> {
     Constant(i64),
     BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>),
     UnOp(UnaryOp,Box<Expr<'a>>),
-    If(Box<Expr<'a>>,Box<Expr<'a>>,Option<Box<Expr<'a>>>)
+    If(Box<Expr<'a>>,Box<Expr<'a>>,Option<Box<Expr<'a>>>),
+    Match(Box<Expr<'a>>,Vec<(Expr<'a>,Expr<'a>)>)
 }
 
 struct Parser<'a> {
@@ -180,7 +181,8 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             // sane expression terminators
             LexToken::OpParenClose |
             LexToken::OpSemicolon |
-            LexToken::OpComma => break,
+            LexToken::OpComma |
+            LexToken::OpMatchArrow => break,
             _ => panic!("Expected operator, found {:?}",next_tok)
         };
 
@@ -239,6 +241,34 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             };
 
             Expr::If(Box::new(cond),Box::new(val_true),val_false)
+        },
+        LexToken::KeyMatch => {
+            parser.take(LexToken::OpParenOpen);
+            let in_expr = parse_expr(parser);
+            parser.take(LexToken::OpParenClose);
+
+            parser.take(LexToken::OpBraceOpen);
+            let mut match_list = Vec::new();
+            loop {
+                if parser.peek() == LexToken::OpBraceClose {
+                    parser.next();
+                    break;
+                }
+                let test_expr = parse_expr(parser);
+                parser.take(LexToken::OpMatchArrow);
+                let res_expr = parse_expr(parser);
+
+                match_list.push((test_expr,res_expr));
+                
+                let next_token = parser.next();
+                if next_token == LexToken::OpBraceClose {
+                    break;
+                } else if next_token != LexToken::OpComma {
+                    panic!("Expected ',' or '}}', found {:?}.",next_token);
+                }
+            }
+
+            Expr::Match(Box::new(in_expr),match_list)
         },
         LexToken::Number(num) => Expr::Constant(num),
         LexToken::OpParenOpen => {

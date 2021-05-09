@@ -9,6 +9,7 @@ pub enum LexToken<'a> {
     KeyOutput,
     KeyLet,
     KeyIf,
+    KeyMatch,
 
     OpAdd,
     OpSub,
@@ -33,6 +34,7 @@ pub enum LexToken<'a> {
     OpAssign,
     OpComma,
     OpSemicolon,
+    OpMatchArrow,
 
     OpParenOpen,
     OpParenClose,
@@ -47,6 +49,7 @@ impl<'a> LexToken<'a> {
             "output" => Self::KeyOutput,
             "let" => Self::KeyLet,
             "if" => Self::KeyIf,
+            "match" => Self::KeyMatch,
             _ => Self::Ident(ident)
         }
     }
@@ -135,6 +138,9 @@ impl<'a> Iterator for Lexer<'a> {
                             if next_char == Some('=') {
                                 self.chars.next();
                                 Some(LexToken::OpCmpEq)
+                            } else if next_char == Some('>') {
+                                self.chars.next();
+                                Some(LexToken::OpMatchArrow)
                             } else {
                                 Some(LexToken::OpAssign)
                             }
