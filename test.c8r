@@ -1,4 +1,5 @@
 mod test(a,b) {
     let x = if(a == b, 3, 4);
-    output(x*2 + 100);
+    let x = 100;
+    output(x*2 + 100, if(a > 0, 1) << 2 );
 }

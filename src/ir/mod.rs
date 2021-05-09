@@ -133,7 +133,9 @@ impl IRModule {
                 assert!(idents.len() == 1);
                 let ident = idents[0].to_owned();
                 let result_arg = self.add_expr(expr);
-                self.bindings.insert(ident, result_arg);
+                if self.bindings.insert(ident, result_arg).is_some() {
+                    panic!("Module '{}': Duplicate variable binding '{}'.",self.name,idents[0]);
+                }
             },
             _ => panic!("todo handle stmt {:?}",stmt)
         }
