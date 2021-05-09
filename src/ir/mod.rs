@@ -206,7 +206,7 @@ impl IRModule {
                 let ir_arg = self.add_expr(arg);
                 if self.settings.fold_constants {
                     if let IRArg::Constant(ac) = ir_arg {
-                        return IRArg::Constant(0i32.checked_sub(ac).expect("bad folded negation"));
+                        return IRArg::Constant(ac.checked_neg().expect("bad folded negation"));
                     }
                 }
                 
@@ -215,16 +215,43 @@ impl IRModule {
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
             Expr::If(cond,val_true,val_false) => {
-                assert!(val_false.is_none()); // TODO
-                let arg_cond = self.add_expr(cond);
-                assert!(arg_cond.is_link()); // TODO
-                let arg_true = self.add_expr(val_true);
-                assert!(arg_true.is_link()); // TODO
+                // TODO folding
 
-                self.nodes.push(IRNode::BinOpCmpGate(arg_cond,BinOp::CmpNeq,0,arg_true));
-                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+                let arg_cond = self.add_expr(cond);
+                assert!(arg_cond.is_link()); // TODO make const node
+                let mut arg_true = self.add_expr(val_true);
+
+                // Gated value *MUST* be a result.
+                if let IRArg::Constant(n) = arg_true {
+                    arg_true = self.add_const_node(n);
+                }
+
+                self.nodes.push(IRNode::BinOpCmpGate(arg_cond.clone(),BinOp::CmpNeq,0,arg_true));
+                let true_result = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
+
+                if let Some(val_false) = val_false {
+                    let mut arg_false = self.add_expr(val_false);
+
+                    // Gated value *MUST* be a result.
+                    if let IRArg::Constant(n) = arg_false {
+                        arg_false = self.add_const_node(n);
+                    }
+
+                    self.nodes.push(IRNode::BinOpCmpGate(arg_cond,BinOp::CmpEq,0,arg_false));
+                    let false_result = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
+
+                    self.nodes.push(IRNode::Multi(vec!(true_result,false_result)));
+                    IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+                } else {
+                    true_result
+                }
             }
         }
+    }
+
+    fn add_const_node(&mut self, n: i32) -> IRArg {
+        self.nodes.push(IRNode::Constant(n));
+        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
     }
 }
 

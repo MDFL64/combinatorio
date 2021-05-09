@@ -318,6 +318,9 @@ impl IRModule {
                 IRNode::Input(_) => {
                     self.grid.add_input(i as u32, self.port_count);
                 },
+                IRNode::Constant(_) => {
+                    self.grid.add_node(i as u32);
+                },
                 IRNode::Output(_,arg) => {
                     self.grid.add_output(i as u32, self.port_count);
                     networks.add_link(arg, i as u32);

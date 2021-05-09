@@ -2,7 +2,7 @@
     //output(a*a + b*b);
 
 mod test(d1,d2,d3,d4) {
-    let x = if(d1 == d2, 5);
-    let y = if(d1 > 10, 7);
+    let x = if(d1 == d2, 5, 10);
+    let y = if(d1 > 10, 7, 10);
     output(x + 100, y + 100);
 }

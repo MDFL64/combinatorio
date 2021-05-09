@@ -15,6 +15,7 @@ impl IRModule {
         for (out_i,node) in self.nodes.iter().enumerate() {
             match node {
                 IRNode::Input(_) => (),
+                IRNode::Constant(_) => (),
                 IRNode::Output(..) => (),
                 IRNode::BinOpSame(..) => (),
                 IRNode::BinOp(lhs,_,rhs) |

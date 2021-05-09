@@ -42,6 +42,7 @@ impl IRModule {
         for node in &mut self.nodes {
             match node {
                 IRNode::Input(_) => (),
+                IRNode::Constant(_) => (),
                 IRNode::BinOp(lhs,_,rhs) |
                 IRNode::BinOpCmp(lhs,_,rhs) |
                 IRNode::BinOpCmpGate(lhs,_,_,rhs) => {

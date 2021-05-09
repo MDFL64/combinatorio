@@ -230,6 +230,11 @@ impl IRModule {
                     let symbol = self.out_symbols[id];
                     ent_ids[id] = builder.add_constant(pos,symbol,0);
                 },
+                IRNode::Constant(x) => {
+                    let pos = self.get_true_pos(id as u32);
+                    let symbol = self.out_symbols[id];
+                    ent_ids[id] = builder.add_constant(pos,symbol,*x);
+                },
                 IRNode::Output(_,arg) => {
                     let pos = self.get_true_pos(id as u32);
                     if let IRArg::Constant(n) = arg {
