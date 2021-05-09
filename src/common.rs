@@ -100,6 +100,18 @@ impl BinOp {
             _ => panic!("attempt to flip unflippable operator {:?}",self)
         }
     }
+
+    pub fn fold_same(&self) -> i32 {
+        match self {
+            BinOp::CmpEq => 1,
+            BinOp::CmpNeq => 0,
+            BinOp::CmpLt => 0,
+            BinOp::CmpGt => 0,
+            BinOp::CmpLeq => 1,
+            BinOp::CmpGeq => 1,
+            _ => panic!("attempt to fold-same bad operator {:?}",self)
+        }
+    }
 }
 
 #[derive(Debug,Clone,Copy,PartialEq)]

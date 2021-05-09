@@ -166,7 +166,7 @@ impl IRModule {
                 if op.is_compare() {
                     if lex.is_link() && lex == rex {
                         // We can and should ALWAYS fold cases like a == b, etc.
-                        panic!("todo fold same compare");
+                        return IRArg::Constant(op.fold_same());
                     } else {
                         if lex.is_link() {
                             self.nodes.push(IRNode::BinOpCmp(lex,*op,rex));
