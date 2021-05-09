@@ -72,6 +72,14 @@ impl BinOp {
             BinOp::Mul => lhs.wrapping_mul(rhs),
             BinOp::Div => lhs.wrapping_div(rhs),
             BinOp::Mod => lhs % rhs,
+
+            BinOp::CmpEq => if lhs == rhs { 1 } else { 0 },
+            BinOp::CmpNeq => if lhs != rhs { 1 } else { 0 },
+            BinOp::CmpLt => if lhs < rhs { 1 } else { 0 },
+            BinOp::CmpGt => if lhs > rhs { 1 } else { 0 },
+            BinOp::CmpLeq => if lhs <= rhs { 1 } else { 0 },
+            BinOp::CmpGeq => if lhs >= rhs { 1 } else { 0 },
+
             BinOp::Power => if rhs < 0 {
                 panic!("negative pow")
             } else {
@@ -101,6 +109,18 @@ impl BinOp {
         }
     }
 
+    pub fn invert(&self) -> BinOp {
+        match self {
+            BinOp::CmpEq => BinOp::CmpNeq,
+            BinOp::CmpNeq => BinOp::CmpEq,
+            BinOp::CmpLt => BinOp::CmpGeq,
+            BinOp::CmpGt => BinOp::CmpLeq,
+            BinOp::CmpLeq => BinOp::CmpGt,
+            BinOp::CmpGeq => BinOp::CmpLt,
+            _ => panic!("attempt to invert uninvertable operator {:?}",self)
+        }
+    }
+
     pub fn fold_same(&self) -> i32 {
         match self {
             BinOp::CmpEq => 1,
@@ -118,7 +138,6 @@ impl BinOp {
 pub enum UnaryOp {
     Negate,
     // Do we even want other unary ops? logical not would probably be the most useful, and it could be optimized
-    BitNot
 }
 
 #[derive(Debug,Hash,PartialEq,Eq,Clone)]

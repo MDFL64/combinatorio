@@ -131,10 +131,13 @@ impl IRModule {
             Statement::VarBinding(idents,expr) => {
                 // TODO check sub-module calls
                 assert!(idents.len() == 1);
-                let ident = idents[0].to_owned();
+                let (ident,is_multi_driver) = idents[0];
+                if is_multi_driver {
+                    panic!("todo multi-driver");
+                }
                 let result_arg = self.add_expr(expr);
-                if self.bindings.insert(ident, result_arg).is_some() {
-                    panic!("Module '{}': Duplicate variable binding '{}'.",self.name,idents[0]);
+                if self.bindings.insert(ident.to_owned(), result_arg).is_some() {
+                    panic!("Module '{}': Duplicate variable binding '{}'.",self.name,ident);
                 }
             },
             _ => panic!("todo handle stmt {:?}",stmt)
@@ -217,19 +220,30 @@ impl IRModule {
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
             Expr::If(cond,val_true,val_false) => {
-                // TODO folding
 
                 let arg_cond = self.add_expr(cond);
                 let arg_true = self.add_expr(val_true);
 
+                // Try pulling from an existing comparison node.
                 if let IRArg::Link(cond_id,_) = arg_cond {
                     if let IRNode::BinOpCmp(lhs,op,rhs) = &self.nodes[cond_id as usize] {
-                        let true_result = self.add_compare_gate(lhs.clone(), op.clone(), rhs.clone(), arg_true);
+                        if rhs.is_const() {
+                            // Clone everything so we're not referencing nodes while we want to mutate them.
+                            let lhs = lhs.clone();
+                            let rhs = rhs.clone();
+                            let op = op.clone();
 
-                        if let Some(val_false) = val_false {
-                            panic!("todo direct false");
-                        } else {
-                            return true_result;
+                            let true_result = self.add_compare_gate(lhs.clone(), op.clone(), rhs.clone(), arg_true);
+    
+                            if let Some(val_false) = val_false {
+                                let arg_false = self.add_expr(val_false);
+
+                                let false_result = self.add_compare_gate(lhs.clone(), op.invert(), rhs.clone(), arg_false);
+
+                                return self.add_multi_driver(vec!(true_result,false_result));
+                            } else {
+                                return true_result;
+                            }
                         }
                     }
                 }
@@ -243,8 +257,7 @@ impl IRModule {
 
                     let false_result = self.add_compare_gate(arg_cond,BinOp::CmpEq,arg_zero,arg_false);
 
-                    self.nodes.push(IRNode::MultiDriver(vec!(true_result,false_result)));
-                    IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+                    self.add_multi_driver(vec!(true_result,false_result))
                 } else {
                     true_result
                 }
@@ -259,15 +272,27 @@ impl IRModule {
                     results.push(self.add_compare_gate(arg_in.clone(), BinOp::CmpEq, arg_test, arg_res));
                 }
 
-                assert!(results.len() > 1); // TODO fall back to single arg or const 0 on failure
-                self.nodes.push(IRNode::MultiDriver(results));
-                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+                self.add_multi_driver(results)
             }
         }
     }
 
-    fn add_compare_gate(&mut self, lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
-        assert!(lhs.is_link()); // TODO make const node
+    fn add_compare_gate(&mut self, mut lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
+        if self.settings.fold_constants {
+            if let IRArg::Constant(lhs_n) = lhs {
+                if let IRArg::Constant(rhs_n) = rhs {
+                    if op.fold(lhs_n, rhs_n) != 0 {
+                        return gated;
+                    } else {
+                        return IRArg::Constant(0);
+                    }
+                }
+            }
+        }
+
+        if let IRArg::Constant(n) = lhs {
+            lhs = self.add_const_node(n);
+        }
 
         if let IRArg::Constant(rhs_n) = rhs {
             // Gated value *MUST* be a link.
@@ -278,12 +303,33 @@ impl IRModule {
             self.nodes.push(IRNode::BinOpCmpGate(lhs,op,rhs_n,gated));
             IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
         } else {
-            panic!("todo problematic compare gate");
+            panic!("Bad compare gate, rhs must be a constant.");
         }
     }
 
     fn add_const_node(&mut self, n: i32) -> IRArg {
+        // TODO merge same constants into same nodes (save constants in a LUT)
+        // TODO make two constants fill a single cell somehow
         self.nodes.push(IRNode::Constant(n));
+        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+    }
+
+    fn add_multi_driver(&mut self, args: Vec<IRArg>) -> IRArg {
+        if self.settings.fold_constants {
+            // TODO try folding if every arg is a constant
+        }
+
+        // We need to convert any constant args into constant nodes.
+        let results = args.into_iter().map(|arg| {
+            if let IRArg::Constant(n) = arg {
+                self.add_const_node(n);
+                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+            } else {
+                arg
+            }
+        }).collect();
+
+        self.nodes.push(IRNode::MultiDriver(results));
         IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
     }
 }
