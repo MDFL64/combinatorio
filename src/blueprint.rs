@@ -2,6 +2,7 @@ use std::{collections::HashMap, io::prelude::*};
 use flate2::{Compression, read::ZlibDecoder, write::ZlibEncoder};
 use serde::{Serialize, Deserialize};
 
+#[allow(unused)]
 pub fn read_blueprint(blueprint: &str) -> Blueprint {
     assert_eq!(blueprint.chars().next(),Some('0'),"bad version");
     let (_,b64) = blueprint.split_at(1);

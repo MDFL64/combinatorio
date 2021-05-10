@@ -1,9 +1,9 @@
-// mod clock(period) {
-//     let $n = 0;
-//     let $n = n + 1;
-// 
-//     output((n % period) == 0);
-// }
+mod clock(period) {
+    let $n = 0;
+    let $n = n + 1;
+
+    output((n % period) == 0);
+}
 
 mod meme(x,y) {
     let a = if(x == 7,10,5);

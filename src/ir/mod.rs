@@ -10,6 +10,7 @@ mod select_colors;
 mod select_symbols;
 mod layout;
 mod to_blueprint;
+mod prune;
 
 pub struct IRModule {
     name: String,
@@ -73,6 +74,7 @@ impl IRModule {
         }
     }
 
+    #[allow(unused)]
     pub fn print(&self) {
         println!("IR MODULE: {}",self.name);
         println!("NODES:");
@@ -387,6 +389,24 @@ impl IRModule {
             IRArg::Constant(folded_const)
         }
     }
+
+    fn check_multi_driver(&self) {
+        for (name,(arg,is_md)) in &self.bindings {
+            if *is_md {
+                if let IRArg::Link(node_id,_) = arg {
+                    if let IRNode::MultiDriver(arg_list) = &self.nodes[*node_id as usize] {
+                        if arg_list.len() < 2 {
+                            panic!("Module '{}': Multi-driver binding '{}' has less than two drivers.",self.name,name);
+                        }
+                    } else {
+                        panic!("multi-driver binding must be multi-driver!");
+                    }
+                } else {
+                    panic!("multi-driver binding cannot be constant!");
+                }
+            }
+        }
+    }
 }
 
 // Consumes a list of AST modules and returns the IR for the final module.
@@ -401,6 +421,12 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRMod
 
         for stmt in p_mod.stmts {
             ir.add_stmt(&stmt);
+        }
+
+        ir.check_multi_driver();
+
+        if ir.settings.prune {
+            ir.prune();
         }
         
         return ir;

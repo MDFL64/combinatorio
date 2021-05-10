@@ -9,7 +9,8 @@ mod blueprint;
 mod disjoint_set;
 
 pub struct CompileSettings {
-    fold_constants: bool
+    fold_constants: bool,
+    prune: bool
 }
 
 fn main() {
@@ -17,7 +18,8 @@ fn main() {
     let parse_results = crate::parser::parse(&source);
     
     let settings = Rc::new(CompileSettings{
-        fold_constants: true
+        fold_constants: true,
+        prune: true
     });
 
     let mut ir_mod = ir::build_ir(parse_results, settings);
