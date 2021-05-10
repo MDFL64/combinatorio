@@ -1,6 +1,21 @@
-mod clock(period) {
-    let $n = 0;
-    let $n = n + 1;
+// mod clock(period) {
+//     let $n = 0;
+//     let $n = n + 1;
+// 
+//     output((n % period) == 0);
+// }
 
-    output((n % period) == 0);
+mod meme(x,y) {
+    let a = if(x == 7,10,5);
+    let b = if(x != 7,10,5);
+    let c = if(x > 7,10,5);
+
+    let $d = 0;
+    let $d = d + 1;
+
+    // BAD: feeds back!
+    // let $e = x;
+    // let $e = y;
+
+    output(a,b,c,d);
 }

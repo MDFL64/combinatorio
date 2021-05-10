@@ -295,7 +295,14 @@ impl IRModule {
                 for (expr_test,expr_res) in match_list {
                     let arg_test = self.add_expr(expr_test);
                     let arg_res = self.add_expr(expr_res);
-                    results.push(self.add_compare_gate(arg_in.clone(), BinOp::CmpEq, arg_test, arg_res));
+                    if arg_test.is_const() {
+                        results.push(self.add_compare_gate(arg_in.clone(), BinOp::CmpEq, arg_test, arg_res));
+                    } else {
+                        // must add an extra compare
+                        self.nodes.push(IRNode::BinOpCmp(arg_in.clone(),BinOp::CmpEq,arg_test));
+                        let cmp_res = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
+                        results.push(self.add_compare_gate(cmp_res, BinOp::CmpNeq, IRArg::Constant(0), arg_res));
+                    }
                 }
 
                 self.add_multi_driver(results)
@@ -340,6 +347,7 @@ impl IRModule {
 
     fn add_const_node(&mut self, n: i32) -> IRArg {
         // TODO merge same constants into same nodes (save constants in a LUT)
+        //      WARNING: This is a bad idea for multi-drivers? (feedback)
         // TODO make two constants fill a single cell somehow
         self.nodes.push(IRNode::Constant(n));
         IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
