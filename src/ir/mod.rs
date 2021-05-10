@@ -15,7 +15,7 @@ pub struct IRModule {
     name: String,
     settings: Rc<CompileSettings>,
     port_count: i32,
-    bindings: HashMap<String,IRArg>,
+    bindings: HashMap<String,(IRArg,bool)>,
     nodes: Vec<IRNode>,
     outputs_set: bool,
     out_symbols: Vec<u32>,
@@ -109,7 +109,7 @@ impl IRModule {
         self.port_count += arg_names.len() as i32;
         for (i,arg_name) in arg_names.iter().enumerate() {
             self.nodes.push(IRNode::Input(i as u32));
-            if self.bindings.insert((*arg_name).to_owned(), IRArg::Link(i as u32,WireColor::None) ).is_some() {
+            if self.bindings.insert((*arg_name).to_owned(), (IRArg::Link(i as u32,WireColor::None),false) ).is_some() {
                 panic!("Module '{}': Duplicate argument '{}'.",self.name,arg_name);
             }
         }
@@ -132,12 +132,38 @@ impl IRModule {
                 // TODO check sub-module calls
                 assert!(idents.len() == 1);
                 let (ident,is_multi_driver) = idents[0];
-                if is_multi_driver {
-                    panic!("todo multi-driver");
-                }
                 let result_arg = self.add_expr(expr);
-                if self.bindings.insert(ident.to_owned(), result_arg).is_some() {
-                    panic!("Module '{}': Duplicate variable binding '{}'.",self.name,ident);
+
+                if is_multi_driver {
+                    if !self.bindings.contains_key(&ident.to_owned()) {
+                        self.nodes.push(IRNode::MultiDriver(Vec::new()));
+                        self.bindings.insert(ident.to_owned(), (IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None), true) );
+                    }
+
+                    let (md_arg, is_arg_md) = self.bindings.get(&ident.to_owned()).unwrap().clone();
+                    if !is_arg_md {
+                        panic!("Module '{}': Attempt to multi-drive variable '{}'.",self.name,ident);
+                    }
+                    if let IRArg::Link(md_id,_) = md_arg {
+                        // multi-driver inputs must be real nodes
+                        let fixed_result = if let IRArg::Constant(n) = &result_arg {
+                            self.add_const_node(*n)
+                        } else {
+                            result_arg
+                        };
+                        let md_node = &mut self.nodes[md_id as usize];
+                        if let IRNode::MultiDriver(md_list) = md_node {
+                            md_list.push(fixed_result);
+                        } else {
+                            panic!("MD node was not MD?");
+                        }
+                    } else {
+                        panic!("MD arg was not a link?");
+                    }
+                } else {
+                    if self.bindings.insert(ident.to_owned(), (result_arg,false)).is_some() {
+                        panic!("Module '{}': Duplicate variable binding '{}'.",self.name,ident);
+                    }
                 }
             },
             _ => panic!("todo handle stmt {:?}",stmt)
@@ -147,7 +173,7 @@ impl IRModule {
     fn add_expr(&mut self, expr: &Expr) -> IRArg {
         match expr {
             Expr::Ident(name) => {
-                if let Some(arg) = self.bindings.get(*name) {
+                if let Some((arg,_is_md)) = self.bindings.get(*name) {
                     arg.clone()
                 } else {
                     panic!("Module '{}': '{}' is not defined.",self.name,name);

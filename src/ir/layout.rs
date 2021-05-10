@@ -167,7 +167,12 @@ impl NetRegistry {
             let dest_net_exists = self.map.contains_key(&dest_key);
     
             if src_net_exists && dest_net_exists {
-                panic!("both exist");
+                let net_id_1 = *self.map.get(&src_key).unwrap();
+                let net_id_2 = *self.map.get(&dest_key).unwrap();
+                if net_id_1 == net_id_2 {
+                    return;
+                }
+                panic!("both exist {} {}",net_id_1,net_id_2);
             } else if src_net_exists {
                 let net_id = *self.map.get(&src_key).unwrap();
                 let net = &mut self.list[net_id];
