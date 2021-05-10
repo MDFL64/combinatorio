@@ -279,6 +279,11 @@ impl IRModule {
 
     fn add_compare_gate(&mut self, mut lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
         if self.settings.fold_constants {
+            // If the gated value is zero, this gate is a no-op.
+            if gated == IRArg::Constant(0) {
+                return IRArg::Constant(0);
+            }
+
             if let IRArg::Constant(lhs_n) = lhs {
                 if let IRArg::Constant(rhs_n) = rhs {
                     if op.fold(lhs_n, rhs_n) != 0 {
@@ -314,23 +319,39 @@ impl IRModule {
         IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
     }
 
-    fn add_multi_driver(&mut self, args: Vec<IRArg>) -> IRArg {
+    fn add_multi_driver(&mut self, mut args: Vec<IRArg>) -> IRArg {
+        let mut folded_const: i32 = 0;
+        
+        // Try folding constants into a single constant.
         if self.settings.fold_constants {
-            // TODO try folding if every arg is a constant
+            args.retain(|arg| {
+                if let IRArg::Constant(n) = arg {
+                    folded_const = folded_const.wrapping_add(*n);
+                    false
+                } else {
+                    true
+                }
+            });
         }
 
-        // We need to convert any constant args into constant nodes.
-        let results = args.into_iter().map(|arg| {
+        // We need to convert any remaining constant args into constant nodes.
+        let mut results: Vec<_> = args.into_iter().map(|arg| {
             if let IRArg::Constant(n) = arg {
-                self.add_const_node(n);
-                IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+                self.add_const_node(n)
             } else {
                 arg
             }
         }).collect();
 
-        self.nodes.push(IRNode::MultiDriver(results));
-        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+        if results.len() > 0 {
+            if folded_const != 0 {
+                results.push(self.add_const_node(folded_const));
+            }
+            self.nodes.push(IRNode::MultiDriver(results));
+            IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+        } else {
+            IRArg::Constant(folded_const)
+        }
     }
 }
 

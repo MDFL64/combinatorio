@@ -1,11 +1,16 @@
 mod test(a,b) {
     let x = if(7 > 3, 10, 1);
-    let y = 5 + match(10) {
+    let y = match(a + b) {
         1 => 1,
         10 => 2,
         100 => 3,
+        1000 => 0,
+        1001 => 0,
+        1002 => 0,
+        1003 => 0,
+        1004 => 0,
     };
-    //let $z = 0;
-    //let $z = z + 10;
-    output(x,y);
+    let $z = 0;
+    let $z = z + 10;
+    output(x,y,z);
 }
