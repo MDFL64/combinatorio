@@ -361,6 +361,7 @@ impl IRModule {
                     networks.add_link(arg, i as u32, self);
                 },
                 IRNode::MultiDriver(_) => (), // actual networking is handled in add_link
+                _ => panic!("Node {:?} is not supported at this stage.")
             }
         }
 

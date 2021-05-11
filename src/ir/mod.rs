@@ -31,10 +31,13 @@ enum IRNode {
     Output(u32, IRArg),
     Constant(i32), // <- totally redundant??? there may be some niche situations it's needed
     BinOp(IRArg,BinOp,IRArg),
-    BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
     BinOpCmp(IRArg,BinOp,IRArg), // <- LHS *MUST* be a signal
+    Gate(IRArg,bool,IRArg),
+    MultiDriver(Vec<IRArg>),
+
+    // These are generated later in compilation...
+    BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
     BinOpCmpGate(IRArg,BinOp,i32,IRArg), // <- LHS *MUST* be a signal, RHS *MUST* be a constant, GATED *MUST* be a signal
-    MultiDriver(Vec<IRArg>) // <- still not sure how to actually handle these
 }
 
 #[derive(Debug,Clone,PartialEq)]
@@ -145,18 +148,12 @@ impl IRModule {
 
                     let (md_arg, is_arg_md) = self.bindings.get(&ident.to_owned()).unwrap().clone();
                     if !is_arg_md {
-                        panic!("Module '{}': Attempt to multi-drive variable '{}'.",self.name,ident);
+                        panic!("Module '{}': Attempt to multi-drive existing simple variable '{}'.",self.name,ident);
                     }
                     if let IRArg::Link(md_id,_) = md_arg {
-                        // multi-driver inputs must be real nodes
-                        let fixed_result = if let IRArg::Constant(n) = &result_arg {
-                            self.add_const_node(*n)
-                        } else {
-                            result_arg
-                        };
                         let md_node = &mut self.nodes[md_id as usize];
                         if let IRNode::MultiDriver(md_list) = md_node {
-                            md_list.push(fixed_result);
+                            md_list.push(result_arg);
                         } else {
                             panic!("MD node was not MD?");
                         }
@@ -223,46 +220,21 @@ impl IRModule {
                 let arg_cond = self.add_expr(cond);
                 let arg_true = self.add_expr(val_true);
 
-                // Try pulling from an existing comparison node.
-                if let IRArg::Link(cond_id,_) = arg_cond {
-                    if let IRNode::BinOpCmp(lhs,op,rhs) = &self.nodes[cond_id as usize] {
-                        if rhs.is_const() {
-                            // Clone everything so we're not referencing nodes while we want to mutate them.
-                            let lhs = lhs.clone();
-                            let rhs = rhs.clone();
-                            let op = op.clone();
-
-                            let true_result = self.add_compare_gate(lhs.clone(), op.clone(), rhs.clone(), arg_true);
-    
-                            if let Some(val_false) = val_false {
-                                let arg_false = self.add_expr(val_false);
-
-                                let false_result = self.add_compare_gate(lhs.clone(), op.invert(), rhs.clone(), arg_false);
-
-                                return self.add_multi_driver(vec!(true_result,false_result));
-                            } else {
-                                return true_result;
-                            }
-                        }
-                    }
-                }
-
-                let arg_zero = IRArg::Constant(0);
-
-                let true_result = self.add_compare_gate(arg_cond.clone(),BinOp::CmpNeq,arg_zero.clone(),arg_true);
+                let true_result = self.add_node(IRNode::Gate(arg_cond.clone(),true,arg_true));
 
                 if let Some(val_false) = val_false {
                     let arg_false = self.add_expr(val_false);
 
-                    let false_result = self.add_compare_gate(arg_cond,BinOp::CmpEq,arg_zero,arg_false);
+                    let false_result = self.add_node(IRNode::Gate(arg_cond,false,arg_false));
 
-                    self.add_multi_driver(vec!(true_result,false_result))
+                    self.add_node(IRNode::MultiDriver(vec!(true_result,false_result)))
                 } else {
                     true_result
                 }
             },
             Expr::Match(expr_in,match_list) => {
-                let arg_in = self.add_expr(expr_in);
+                panic!("match currently unsupported");
+                /*let arg_in = self.add_expr(expr_in);
 
                 let mut results = Vec::new();
                 for (expr_test,expr_res) in match_list {
@@ -278,12 +250,17 @@ impl IRModule {
                     }
                 }
 
-                self.add_multi_driver(results)
+                self.add_multi_driver(results)*/
             }
         }
     }
 
-    fn add_compare_gate(&mut self, mut lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
+    fn add_node(&mut self, node: IRNode) -> IRArg {
+        self.nodes.push(node);
+        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+    }
+
+    /*fn add_compare_gate(&mut self, mut lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
         if self.settings.fold_constants {
             // If the gated value is zero, this gate is a no-op.
             if gated == IRArg::Constant(0) {
@@ -316,50 +293,20 @@ impl IRModule {
         } else {
             panic!("Bad compare gate, rhs must be a constant.");
         }
-    }
+    }*/
 
-    fn add_const_node(&mut self, n: i32) -> IRArg {
+    /*fn add_const_node(&mut self, n: i32) -> IRArg {
         // TODO merge same constants into same nodes (save constants in a LUT)
         //      WARNING: This is a bad idea for multi-drivers? (feedback)
         // TODO make two constants fill a single cell somehow
         self.nodes.push(IRNode::Constant(n));
         IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
-    }
+    }*/
 
-    fn add_multi_driver(&mut self, mut args: Vec<IRArg>) -> IRArg {
-        let mut folded_const: i32 = 0;
-        
-        // Try folding constants into a single constant.
-        if self.settings.fold_constants {
-            args.retain(|arg| {
-                if let IRArg::Constant(n) = arg {
-                    folded_const = folded_const.wrapping_add(*n);
-                    false
-                } else {
-                    true
-                }
-            });
-        }
-
-        // We need to convert any remaining constant args into constant nodes.
-        let mut results: Vec<_> = args.into_iter().map(|arg| {
-            if let IRArg::Constant(n) = arg {
-                self.add_const_node(n)
-            } else {
-                arg
-            }
-        }).collect();
-
-        if results.len() > 0 {
-            if folded_const != 0 {
-                results.push(self.add_const_node(folded_const));
-            }
-            self.nodes.push(IRNode::MultiDriver(results));
-            IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
-        } else {
-            IRArg::Constant(folded_const)
-        }
-    }
+    /*fn add_multi_driver(&mut self, args: Vec<IRArg>) -> IRArg {
+        self.nodes.push(IRNode::MultiDriver(args));
+        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
+    }*/
 
     fn check_multi_driver(&self) {
         for (name,(arg,is_md)) in &self.bindings {

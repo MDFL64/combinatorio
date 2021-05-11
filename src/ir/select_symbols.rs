@@ -45,7 +45,7 @@ impl IRModule {
                         }
                     }
                 },
-                //_ => panic!("todo symbol constraint {:?}",node)
+                _ => panic!("Node {:?} is not supported at this stage.",node)
             }
         }
 

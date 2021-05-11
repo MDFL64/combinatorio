@@ -17,9 +17,7 @@ mod meme(a,b,c) {
     // let $e = x;
     // let $e = y;
 
-    let x = 10 + 10 > 10;
-    let y = 10 + 10 < 10;
-    let z = 10 + 10 <= 20;
+    let x = if(10 > 0,100,5);
 
-    output(x,y,z,x+y+z,a+x,b+y,c+z);
+    output(x);
 }
