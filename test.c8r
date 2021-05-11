@@ -1,21 +1,25 @@
-mod clock(period) {
-    let $n = 0;
-    let $n = n + 1;
+//mod clock(period) {
+//    let $n = 0;
+//    let $n = n + 1;
+//
+//    output((n % period) == 0);
+//}
 
-    output((n % period) == 0);
-}
+mod meme(a,b,c) {
+    //let a = if(x == 7,10,5);
+    //let b = if(x != 7,10,5);
+    //let c = if(x > 7,10,5);
 
-mod meme(x,y) {
-    let a = if(x == 7,10,5);
-    let b = if(x != 7,10,5);
-    let c = if(x > 7,10,5);
-
-    let $d = 0;
-    let $d = d + 1;
+    //let $d = 0;
+    //let $d = d + 1;
 
     // BAD: feeds back!
     // let $e = x;
     // let $e = y;
 
-    output(a,b,c,d);
+    let x = 10 + 10 > 10;
+    let y = 10 + 10 < 10;
+    let z = 10 + 10 <= 20;
+
+    output(x,y,z,x+y+z,a+x,b+y,c+z);
 }

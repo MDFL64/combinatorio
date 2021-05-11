@@ -70,7 +70,7 @@ impl IRModule {
                             self.out_symbols[*b as usize] += self.out_symbols[*a as usize];
                         }
                     },
-                    _ => panic!("todo handle constraint {:?}",cons)
+                    //_ => panic!("todo handle constraint {:?}",cons)
                 }
             }
             if errors == 0 {

@@ -18,7 +18,7 @@ fn main() {
     let parse_results = crate::parser::parse(&source);
     
     let settings = Rc::new(CompileSettings{
-        fold_constants: true,
+        fold_constants: false,
         prune: true
     });
 

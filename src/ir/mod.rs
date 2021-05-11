@@ -11,6 +11,7 @@ mod select_symbols;
 mod layout;
 mod to_blueprint;
 mod prune;
+mod opt;
 
 pub struct IRModule {
     name: String,
@@ -24,7 +25,7 @@ pub struct IRModule {
     links: Vec<WireLink>
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 enum IRNode {
     Input(u32),
     Output(u32, IRArg),
@@ -188,37 +189,12 @@ impl IRModule {
             Expr::BinOp(lhs,op,rhs) => {
                 let lex = self.add_expr(lhs);
                 let rex = self.add_expr(rhs);
-
-                if self.settings.fold_constants {
-                    if let IRArg::Constant(lc) = lex {
-                        if let IRArg::Constant(rc) = rex {
-                            let const_val = op.fold(lc,rc);
-                            return IRArg::Constant(const_val);
-                        }
-                    }
-                }
                 
                 if op.is_compare() {
-                    if lex.is_link() && lex == rex {
-                        // We can and should ALWAYS fold cases like a == b, etc.
-                        return IRArg::Constant(op.fold_same());
-                    } else {
-                        if lex.is_link() {
-                            self.nodes.push(IRNode::BinOpCmp(lex,*op,rex));
-                        } else if rex.is_link() {
-                            self.nodes.push(IRNode::BinOpCmp(rex,op.flip(),lex));
-                        } else {
-                            panic!("todo stupid constant comparison, add a const combinator");
-                        }
-                    }
+                    self.nodes.push(IRNode::BinOpCmp(lex,*op,rex));
                 } else {
-                    if lex.is_link() && lex == rex {
-                        self.nodes.push(IRNode::BinOpSame(lex,*op));
-                    } else {
-                        self.nodes.push(IRNode::BinOp(lex,*op,rex));
-                    }
+                    self.nodes.push(IRNode::BinOp(lex,*op,rex));
                 }
-
 
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
@@ -237,12 +213,7 @@ impl IRModule {
 
                 // Try normal constant-folding
                 let ir_arg = self.add_expr(arg);
-                if self.settings.fold_constants {
-                    if let IRArg::Constant(ac) = ir_arg {
-                        return IRArg::Constant(ac.checked_neg().expect("bad folded negation"));
-                    }
-                }
-                
+
                 // Convert to a subtraction bin-op
                 self.nodes.push(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg));
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
@@ -424,6 +395,7 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRMod
         }
 
         ir.check_multi_driver();
+        ir.fold_constants();
 
         if ir.settings.prune {
             ir.prune();
