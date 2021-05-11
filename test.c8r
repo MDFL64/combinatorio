@@ -19,5 +19,5 @@ mod meme(a,b,c) {
 
     let x = if(10 > 0,100,5);
 
-    output(x);
+    output(a == a, b > b, c <= c);
 }

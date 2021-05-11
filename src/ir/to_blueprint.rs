@@ -245,12 +245,28 @@ impl IRModule {
                 },
                 IRNode::BinOp(lhs,op,rhs) => {
                     let pos = self.get_true_pos(id as u32);
-                    ent_ids[id] = builder.add_arithmetic(pos,
-                        op.to_str().to_owned(), 
-                        self.get_arg_symbol_or_const(lhs),
-                        self.get_arg_symbol_or_const(rhs),
-                        self.out_symbols[id]
-                    );
+                    if !op.is_compare() {
+                        ent_ids[id] = builder.add_arithmetic(pos,
+                            op.to_str().to_owned(), 
+                            self.get_arg_symbol_or_const(lhs),
+                            self.get_arg_symbol_or_const(rhs),
+                            self.out_symbols[id]
+                        );
+                    } else {
+                        if let IRArg::Link(lhs_id,_) = lhs {
+                            let lhs_symbol = self.out_symbols[*lhs_id as usize];
+                            let pos = self.get_true_pos(id as u32);
+                            ent_ids[id] = builder.add_decider(pos,
+                                op.to_str().to_owned(),
+                                lhs_symbol,
+                                self.get_arg_symbol_or_const(rhs),
+                                self.out_symbols[id],
+                                false
+                            );
+                        } else {
+                            panic!("Bad compare, constant on LHS.");
+                        }
+                    }
                 },
                 IRNode::BinOpSame(arg,op) => {
                     let pos = self.get_true_pos(id as u32);
@@ -261,21 +277,6 @@ impl IRModule {
                         arg_val,
                         self.out_symbols[id]
                     );
-                },
-                IRNode::BinOpCmp(lhs,op,rhs) => {
-                    if let IRArg::Link(lhs_id,_) = lhs {
-                        let lhs_symbol = self.out_symbols[*lhs_id as usize];
-                        let pos = self.get_true_pos(id as u32);
-                        ent_ids[id] = builder.add_decider(pos,
-                            op.to_str().to_owned(),
-                            lhs_symbol,
-                            self.get_arg_symbol_or_const(rhs),
-                            self.out_symbols[id],
-                            false
-                        );
-                    } else {
-                        panic!("Bad compare, constant on LHS.");
-                    }
                 },
                 IRNode::BinOpCmpGate(lhs,op,rhs,_gated) => {
                     if let IRArg::Link(lhs_id,_) = lhs {

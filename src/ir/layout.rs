@@ -345,8 +345,7 @@ impl IRModule {
                     self.grid.add_output(i as u32, self.port_count);
                     networks.add_link(arg, i as u32, self);
                 },
-                IRNode::BinOp(lhs,_,rhs) | 
-                IRNode::BinOpCmp(lhs,_,rhs) => {
+                IRNode::BinOp(lhs,_,rhs) => {
                     self.grid.add_node(i as u32);
                     networks.add_link(lhs, i as u32, self);
                     networks.add_link(rhs, i as u32, self);

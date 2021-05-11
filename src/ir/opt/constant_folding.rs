@@ -36,17 +36,24 @@ impl IRModule {
                     IRNode::Output(id,arg) => {
                         self.nodes[index] = IRNode::Output(*id,self.fix_const(arg));
                     },
-                    IRNode::BinOp(lhs,op,rhs) |
-                    IRNode::BinOpCmp(lhs,op,rhs) => {
+                    IRNode::BinOp(lhs,op,rhs) => {
                         let lhs = self.fix_const(lhs);
                         let rhs = self.fix_const(rhs);
                         
+                        // Basic bin-op constant folding
                         if let IRArg::Constant(const_l) = lhs {
                             if let IRArg::Constant(const_r) = rhs {
                                 self.nodes[index] = IRNode::Constant(op.fold(const_l,const_r));
                                 changes += 1;
                                 continue;
                             }
+                        }
+
+                        // Fold comparisons with matching inputs.
+                        if op.is_compare() && lhs.is_link() && lhs == rhs {
+                            self.nodes[index] = IRNode::Constant(op.fold_same());
+                            changes += 1;
+                            continue;
                         }
     
                         self.nodes[index] = IRNode::BinOp(lhs,op.clone(),rhs);
@@ -96,7 +103,9 @@ impl IRModule {
                             if filtered_args.len() == 0 {
                                 self.nodes[index] = IRNode::Constant(const_sum);
                             } else {
-                                filtered_args.push(IRArg::Constant(const_sum));
+                                if const_sum != 0 {
+                                    filtered_args.push(IRArg::Constant(const_sum));
+                                }
                                 self.nodes[index] = IRNode::MultiDriver(filtered_args);
                             }
                             changes += 1;

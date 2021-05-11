@@ -44,7 +44,6 @@ impl IRModule {
                 IRNode::Input(_) => (),
                 IRNode::Constant(_) => (),
                 IRNode::BinOp(lhs,_,rhs) |
-                IRNode::BinOpCmp(lhs,_,rhs) |
                 IRNode::BinOpCmpGate(lhs,_,_,rhs) => {
                     let forbid_color = update_color_for_arg(lhs,WireColor::None, &mut out_color_counts);
                     update_color_for_arg(rhs , forbid_color, &mut out_color_counts);

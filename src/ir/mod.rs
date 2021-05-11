@@ -30,8 +30,8 @@ enum IRNode {
     Input(u32),
     Output(u32, IRArg),
     Constant(i32), // <- totally redundant??? there may be some niche situations it's needed
-    BinOp(IRArg,BinOp,IRArg),
-    BinOpCmp(IRArg,BinOp,IRArg), // <- LHS *MUST* be a signal
+    BinOp(IRArg,BinOp,IRArg), // <- use this node for compares as well, there are just a few cases we need to treat compares differently.
+    //BinOpCmp(IRArg,BinOp,IRArg), // <- LHS *MUST* be a signal
     Gate(IRArg,bool,IRArg),
     MultiDriver(Vec<IRArg>),
 
@@ -100,7 +100,6 @@ impl IRModule {
         let node = &self.nodes[id as usize];
         let offset_y = match node {
             IRNode::BinOp(..) |
-            IRNode::BinOpCmp(..) |
             IRNode::BinOpCmpGate(..) |
             IRNode::BinOpSame(..) => 0.5,
             IRNode::Input(..) |
@@ -187,11 +186,7 @@ impl IRModule {
                 let lex = self.add_expr(lhs);
                 let rex = self.add_expr(rhs);
                 
-                if op.is_compare() {
-                    self.nodes.push(IRNode::BinOpCmp(lex,*op,rex));
-                } else {
-                    self.nodes.push(IRNode::BinOp(lex,*op,rex));
-                }
+                self.nodes.push(IRNode::BinOp(lex,*op,rex));
 
                 IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
             },
