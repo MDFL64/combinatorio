@@ -338,11 +338,16 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRMod
         }
 
         ir.check_multi_driver();
-        ir.fold_constants();
+
+        if ir.settings.fold_constants {
+            ir.fold_constants();
+        }
 
         if ir.settings.prune {
             ir.prune();
         }
+
+        ir.fix_nodes();
         
         return ir;
     }

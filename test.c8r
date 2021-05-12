@@ -17,7 +17,10 @@ mod meme(a,b,c) {
     // let $e = x;
     // let $e = y;
 
-    let x = if(10 > 0,100,5);
+    //let x = if(10 > 0,100,5);
 
-    output(a == a, b > b, c <= c);
+    let $md = a;
+    let $md = b;
+
+    output(a > 10, 10 < a, 5 == 5);
 }

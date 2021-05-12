@@ -39,7 +39,16 @@ impl IRModule {
                 IRNode::Output(_,arg) => {
                     add_arg(arg, &mut saved, &mut stack);
                 },
-                _ => panic!("? {:?}",node)
+                IRNode::BinOp(lhs,_,rhs) => {
+                    add_arg(lhs, &mut saved, &mut stack);
+                    add_arg(rhs, &mut saved, &mut stack);
+                },
+                IRNode::MultiDriver(args) => {
+                    for arg in args {
+                        add_arg(arg, &mut saved, &mut stack);
+                    }
+                },
+                _ => panic!("todo prune {:?}",node)
             }
         }
 
