@@ -10,7 +10,6 @@ mod select_colors;
 mod select_symbols;
 mod layout;
 mod to_blueprint;
-mod prune;
 mod opt;
 
 pub struct IRModule {
@@ -38,6 +37,8 @@ enum IRNode {
     // These are generated later in compilation...
     BinOpSame(IRArg,BinOp), // <- special case for when both inputs are the same result value
     BinOpCmpGate(IRArg,BinOp,i32,IRArg), // <- LHS *MUST* be a signal, RHS *MUST* be a constant, GATED *MUST* be a signal
+
+    Removed
 }
 
 #[derive(Debug,Clone,PartialEq)]

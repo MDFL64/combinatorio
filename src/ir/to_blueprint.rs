@@ -293,7 +293,9 @@ impl IRModule {
                         panic!("Bad compare, constant on LHS.");
                     }
                 },
-                IRNode::MultiDriver(_) => (), // virtual node, not built
+                // virtual nodes, not built
+                IRNode::MultiDriver(_) => (),
+                IRNode::Removed => (),
                 _ => panic!("Node {:?} is not supported at this stage.",node)
             }
         }

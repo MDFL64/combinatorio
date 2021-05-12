@@ -16,6 +16,7 @@ impl IRModule {
             match node {
                 IRNode::Input(_) => (),
                 IRNode::Constant(_) => (),
+                IRNode::Removed => (),
                 IRNode::Output(..) => (),
                 IRNode::BinOpSame(..) => (),
                 IRNode::BinOp(lhs,_,rhs) => {

@@ -1,6 +1,5 @@
-use std::collections::{HashMap, HashSet};
 
-use super::super::{IRModule, IRNode, IRArg, WireColor};
+use super::super::{IRModule, IRNode, IRArg};
 
 impl IRModule {
     // Attempts to covert constant nodes to constant args.
