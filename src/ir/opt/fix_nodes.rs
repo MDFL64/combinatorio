@@ -1,7 +1,7 @@
 // This is not really an optimization pass, but it happens during optimization.
 // It expands Gates and makes sure some requirements for conversion to combinators are satasfied.
 
-use crate::ir::WireColor;
+use crate::{common::BinOp, ir::WireColor};
 
 use super::super::{IRModule, IRNode, IRArg};
 
@@ -17,7 +17,7 @@ impl IRModule {
                     } else if op.is_compare() {
                         // 2. fix comparisons (lhs cannot be constant)
                         if lhs.is_link() {
-                            // okay
+                            // fine as-is
                         } else if rhs.is_link() {
                             self.nodes[i] = IRNode::BinOp(rhs.clone(),op.flip(),lhs.clone());
                         } else if let IRArg::Constant(n) = lhs {
@@ -34,8 +34,57 @@ impl IRModule {
             }
         }
 
-
         // 3. expand gates
+        for i in 0..self.nodes.len() {
+            let node = &self.nodes[i];
+            match node {
+                IRNode::Gate(cond,check,gated) => {
+                    let check = *check;
+                    let cond = cond.clone();
+                    let gated = gated.clone();
+
+                    let fixed_gated = if let IRArg::Constant(x) = gated {
+                        self.add_node_at(i, IRNode::Constant(x))
+                    } else {
+                        gated
+                    };
+
+                    // If cond is a comparison, we can re-use it.
+                    if let IRArg::Link(cond_id,_) = cond {
+                        let cond_node = &self.nodes[cond_id as usize];
+                        if let IRNode::BinOp(lhs,op,IRArg::Constant(rhs)) = cond_node {
+                            assert!(lhs.is_link()); // should always be true (stage 2)
+                            if op.is_compare() {
+
+                                let new_node = if check {
+                                    IRNode::BinOpCmpGate(lhs.clone(), op.clone(), *rhs, fixed_gated)
+                                } else {
+                                    IRNode::BinOpCmpGate(lhs.clone(), op.invert(), *rhs, fixed_gated)
+                                };
+                                self.nodes[i] = new_node;
+
+                                continue;
+                            }
+                        }
+                    }
+
+                    // LHS and gated must be signals.
+                    let fixed_cond = if let IRArg::Constant(x) = cond {
+                        self.add_node_at(i, IRNode::Constant(x))
+                    } else {
+                        cond
+                    };
+
+                    let new_node = if check {
+                        IRNode::BinOpCmpGate(fixed_cond, BinOp::CmpNeq, 0, fixed_gated)
+                    } else {
+                        IRNode::BinOpCmpGate(fixed_cond, BinOp::CmpEq, 0, fixed_gated)
+                    };
+                    self.nodes[i] = new_node;
+                },
+                _ => ()
+            }
+        }
 
 
         // 4. add constant nodes

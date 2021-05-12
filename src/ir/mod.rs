@@ -256,54 +256,6 @@ impl IRModule {
         IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
     }
 
-    /*fn add_compare_gate(&mut self, mut lhs: IRArg, op: BinOp, rhs: IRArg, mut gated: IRArg) -> IRArg {
-        if self.settings.fold_constants {
-            // If the gated value is zero, this gate is a no-op.
-            if gated == IRArg::Constant(0) {
-                return IRArg::Constant(0);
-            }
-
-            if let IRArg::Constant(lhs_n) = lhs {
-                if let IRArg::Constant(rhs_n) = rhs {
-                    if op.fold(lhs_n, rhs_n) != 0 {
-                        return gated;
-                    } else {
-                        return IRArg::Constant(0);
-                    }
-                }
-            }
-        }
-
-        if let IRArg::Constant(n) = lhs {
-            lhs = self.add_const_node(n);
-        }
-
-        if let IRArg::Constant(rhs_n) = rhs {
-            // Gated value *MUST* be a link.
-            if let IRArg::Constant(n) = gated {
-                gated = self.add_const_node(n);
-            }
-    
-            self.nodes.push(IRNode::BinOpCmpGate(lhs,op,rhs_n,gated));
-            IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
-        } else {
-            panic!("Bad compare gate, rhs must be a constant.");
-        }
-    }*/
-
-    /*fn add_const_node(&mut self, n: i32) -> IRArg {
-        // TODO merge same constants into same nodes (save constants in a LUT)
-        //      WARNING: This is a bad idea for multi-drivers? (feedback)
-        // TODO make two constants fill a single cell somehow
-        self.nodes.push(IRNode::Constant(n));
-        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
-    }*/
-
-    /*fn add_multi_driver(&mut self, args: Vec<IRArg>) -> IRArg {
-        self.nodes.push(IRNode::MultiDriver(args));
-        IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None)
-    }*/
-
     fn check_multi_driver(&self) {
         for (name,(arg,is_md)) in &self.bindings {
             if *is_md {
@@ -348,6 +300,11 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRMod
         }
 
         ir.fix_nodes();
+
+        // Prune again, gate expansion can leave behind orphan comparators.
+        if ir.settings.prune {
+            ir.prune();
+        }
         
         return ir;
     }

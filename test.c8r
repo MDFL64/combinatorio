@@ -22,5 +22,5 @@ mod meme(a,b,c) {
     let $md = a;
     let $md = b;
 
-    output(a > 10, 10 < a, 5 == 5);
+    output(if(a > 10,10,5));
 }

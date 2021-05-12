@@ -36,6 +36,7 @@ impl IRModule {
             let node = &self.nodes[i];
 
             match node {
+                IRNode::Constant(_) => (),
                 IRNode::Output(_,arg) => {
                     add_arg(arg, &mut saved, &mut stack);
                 },
@@ -47,6 +48,14 @@ impl IRModule {
                     for arg in args {
                         add_arg(arg, &mut saved, &mut stack);
                     }
+                },
+                IRNode::Gate(arg1,_,arg2) => {
+                    add_arg(arg1, &mut saved, &mut stack);
+                    add_arg(arg2, &mut saved, &mut stack);
+                },
+                IRNode::BinOpCmpGate(arg1,_,_,arg2) => {
+                    add_arg(arg1, &mut saved, &mut stack);
+                    add_arg(arg2, &mut saved, &mut stack);
                 },
                 _ => panic!("todo prune {:?}",node)
             }
