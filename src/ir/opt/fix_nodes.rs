@@ -29,12 +29,22 @@ impl IRModule {
                             self.nodes[i] = IRNode::BinOp(lhs_const,op,rhs);
                         }
                     }
+                },
+                // 3. fix multi-driver (constant args not permitted)
+                IRNode::MultiDriver(args) => {
+                    let mut args = args.clone();
+                    for j in 0..args.len() {
+                        if let IRArg::Constant(x) = args[j] {
+                            args[j] = self.add_node_at(i, IRNode::Constant(x))
+                        }
+                    }
+                    self.nodes[i] = IRNode::MultiDriver(args);
                 }
                 _ => ()
             }
         }
 
-        // 3. expand gates
+        // 4. expand gates
         for i in 0..self.nodes.len() {
             let node = &self.nodes[i];
             match node {
@@ -85,14 +95,11 @@ impl IRModule {
                 _ => ()
             }
         }
-
-
-        // 4. add constant nodes
     }
 
     fn add_node_at(&mut self, i: usize, node: IRNode) -> IRArg {
         let mut offset = 0;
-        while offset < self.nodes.len() {
+        while offset >= i && i + offset < self.nodes.len() {
             if let Some(IRNode::Removed) = self.nodes.get(i + offset) {
                 self.nodes[i + offset] = node;
                 return IRArg::Link((i + offset) as u32,WireColor::None);

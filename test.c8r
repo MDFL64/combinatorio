@@ -1,26 +1,40 @@
-//mod clock(period) {
-//    let $n = 0;
-//    let $n = n + 1;
-//
-//    output((n % period) == 0);
-//}
+mod clock(period) {
+    let $n = 0;
+    let $n = n + 1;
 
-mod meme(a,b,c) {
-    //let a = if(x == 7,10,5);
-    //let b = if(x != 7,10,5);
-    //let c = if(x > 7,10,5);
+    output((n % period) == 0);
+}
 
-    //let $d = 0;
-    //let $d = d + 1;
+mod cell(clk,write,val) {
 
-    // BAD: feeds back!
-    // let $e = x;
-    // let $e = y;
+    let $stored = 0;
+    let $stored = if(clk & write, val, stored);
 
-    //let x = if(10 > 0,100,5);
+    output(stored);
+}
 
-    let $md = a;
-    let $md = b;
+mod digits(x) {
+    let d1 = x % 10;
+    let d2 = (x / 10) % 10;
+    let d3 = (x / 100) % 10;
+    let d4 = (x / 1000) % 10;
+    output(d4,d3,d2,d1);
+}
 
-    output(if(a > 10,10,5));
+mod segments(x) {
+
+    let y = match(x) {
+        0 => 63,
+        1 => 6,
+        2 => 91,
+        3 => 79,
+        4 => 102,
+        5 => 109,
+        6 => 125,
+        7 => 7,
+        8 => 127,
+        9 => 111
+    };
+
+    output(y&1,y&2,y&4,y&8,y&16,y&32,y&64);
 }

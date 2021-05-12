@@ -229,24 +229,18 @@ impl IRModule {
                 }
             },
             Expr::Match(expr_in,match_list) => {
-                panic!("match currently unsupported");
-                /*let arg_in = self.add_expr(expr_in);
+                let arg_in = self.add_expr(expr_in);
 
                 let mut results = Vec::new();
                 for (expr_test,expr_res) in match_list {
                     let arg_test = self.add_expr(expr_test);
                     let arg_res = self.add_expr(expr_res);
-                    if arg_test.is_const() {
-                        results.push(self.add_compare_gate(arg_in.clone(), BinOp::CmpEq, arg_test, arg_res));
-                    } else {
-                        // must add an extra compare
-                        self.nodes.push(IRNode::BinOpCmp(arg_in.clone(),BinOp::CmpEq,arg_test));
-                        let cmp_res = IRArg::Link(self.nodes.len() as u32 - 1, WireColor::None);
-                        results.push(self.add_compare_gate(cmp_res, BinOp::CmpNeq, IRArg::Constant(0), arg_res));
-                    }
+
+                    let compare = self.add_node(IRNode::BinOp(arg_in.clone(),BinOp::CmpEq,arg_test));
+                    results.push(self.add_node(IRNode::Gate(compare,true,arg_res)));
                 }
 
-                self.add_multi_driver(results)*/
+                self.add_node(IRNode::MultiDriver(results))
             }
         }
     }
