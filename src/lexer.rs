@@ -86,20 +86,44 @@ impl<'a> Iterator for Lexer<'a> {
     
                     Some(LexToken::ident_or_keyword(token_str))
                 } else if c.is_ascii_digit() {
-                    // TODO hexadecimal, binary
                     // TODO _ seperators?
                     // Don't bother handling negatives. All constants are unsigned.
 
-                    let token_end = parse_str.find(|c: char| !c.is_ascii_digit())
-                        .unwrap_or(parse_str.len());
-                    let token_str = &parse_str[0..token_end];
-                    let remainder_str = &parse_str[token_end..];
+                    let next_char = parse_str.chars().nth(1);
 
-                    self.chars = remainder_str.chars();
+                    if c == '0' && next_char.unwrap_or('0').is_ascii_alphabetic() {
+                        let radix = if next_char == Some('x') {
+                            16
+                        } else if next_char == Some('b') {
+                            2
+                        } else {
+                            panic!("Bad radix indicator '{:?}'.",next_char);
+                        };
 
-                    let num = i64::from_str(token_str).expect("failed to parse int");
+                        let parse_str = &parse_str[2..];
+                        
+                        let token_end = parse_str.find(|c: char| !c.is_ascii_alphanumeric())
+                            .unwrap_or(parse_str.len());
+                        let token_str = &parse_str[0..token_end];
+                        let remainder_str = &parse_str[token_end..];
+    
+                        self.chars = remainder_str.chars();
 
-                    Some(LexToken::Number(num))
+                        let num = i64::from_str_radix(token_str, radix).expect("failed to parse int");
+    
+                        Some(LexToken::Number(num))
+                    } else {
+                        let token_end = parse_str.find(|c: char| !c.is_ascii_digit())
+                            .unwrap_or(parse_str.len());
+                        let token_str = &parse_str[0..token_end];
+                        let remainder_str = &parse_str[token_end..];
+    
+                        self.chars = remainder_str.chars();
+    
+                        let num = i64::from_str(token_str).expect("failed to parse int");
+    
+                        Some(LexToken::Number(num))
+                    }
                 } else if c.is_ascii_whitespace() {
                     // TODO line handling?
                     // Probably use another iterator wrapper if we want that?

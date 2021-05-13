@@ -72,8 +72,8 @@ impl WireNet {
     }
 
     fn correct(&self, module: &mut IRModule) {
-        const MIN_FRACTION: f32 = 0.1;
-        const MAX_FRACTION: f32 = 0.9;
+        const MIN_FRACTION: f32 = 0.0;
+        const MAX_FRACTION: f32 = 1.0;
 
         fn lerp_pos(start: (i32,i32), end: (i32,i32), f: f32) -> (i32,i32) {
             let x = start.0 + ((end.0 - start.0) as f32 * f).round() as i32;
@@ -111,7 +111,7 @@ impl WireNet {
             //println!("f = {}",fraction);
 
             let new_pos = lerp_pos(base_pos, mid_pos, fraction);
-            if new_pos == mid_pos {
+            if new_pos == base_pos {
                 continue;
             }
 

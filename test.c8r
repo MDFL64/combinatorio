@@ -1,40 +1,66 @@
-mod clock(period) {
-    let $n = 0;
-    let $n = n + 1;
+//mod clock(period) {
+//    let $n = 0;
+//    let $n = n + 1;
+//
+//    output((n % period) == 0);
+//}
+//
+//mod cell(clk,write,val) {
+//
+//    let $stored = 0;
+//    let $stored = if(clk & write, val, stored);
+//
+//    output(stored);
+//}
+//
+//mod digits(x) {
+//    let d1 = x % 10;
+//    let d2 = (x / 10) % 10;
+//    let d3 = (x / 100) % 10;
+//    let d4 = (x / 1000) % 10;
+//    output(d4,d3,d2,d1);
+//}
+//
+//mod segments(x) {
+//
+//    let y = match(x) {
+//        0 => 63,
+//        1 => 6,
+//        2 => 91,
+//        3 => 79,
+//        4 => 102,
+//        5 => 109,
+//        6 => 125,
+//        7 => 7,
+//        8 => 127,
+//        9 => 111
+//    };
+//
+//    output(y&1,y&2,y&4,y&8,y&16,y&32,y&64);
+//}
 
-    output((n % period) == 0);
-}
+mod meme(x) {
+    output(
+        1+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
 
-mod cell(clk,write,val) {
-
-    let $stored = 0;
-    let $stored = if(clk & write, val, stored);
-
-    output(stored);
-}
-
-mod digits(x) {
-    let d1 = x % 10;
-    let d2 = (x / 10) % 10;
-    let d3 = (x / 100) % 10;
-    let d4 = (x / 1000) % 10;
-    output(d4,d3,d2,d1);
-}
-
-mod segments(x) {
-
-    let y = match(x) {
-        0 => 63,
-        1 => 6,
-        2 => 91,
-        3 => 79,
-        4 => 102,
-        5 => 109,
-        6 => 125,
-        7 => 7,
-        8 => 127,
-        9 => 111
-    };
-
-    output(y&1,y&2,y&4,y&8,y&16,y&32,y&64);
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x
+    );
 }

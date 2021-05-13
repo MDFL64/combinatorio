@@ -180,8 +180,7 @@ impl IRModule {
                 }
             },
             Expr::Constant(num) => {
-                let num_32: i32 = (*num).try_into().expect("bad constant");
-                IRArg::Constant(num_32)
+                narrow_constant(*num)
             },
             Expr::BinOp(lhs,op,rhs) => {
                 let lex = self.add_expr(lhs);
@@ -199,9 +198,7 @@ impl IRModule {
                 // SPECIAL CASE: Negate constants immediately to deal with possible i32::MIN
                 // Do this REGARDLESS of whether constant folding is enabled.
                 if let Expr::Constant(const_val) = arg.as_ref() {
-                    let negated = -const_val;
-                    let num_32: i32 = negated.try_into().expect("bad constant");
-                    return IRArg::Constant(num_32);
+                    return narrow_constant(*const_val);
                 }
 
                 // Try normal constant-folding
@@ -267,6 +264,18 @@ impl IRModule {
             }
         }
     }
+}
+
+fn narrow_constant(x: i64) -> IRArg {
+    let num_i32 = if let Ok(n) = x.try_into() {
+        n
+    } else if let Ok(n) = x.try_into() {
+        let n: u32 = n;
+        n as i32
+    } else {
+        panic!("constant too wide: {}",x)
+    };
+    IRArg::Constant(num_i32)
 }
 
 // Consumes a list of AST modules and returns the IR for the final module.
