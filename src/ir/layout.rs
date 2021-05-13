@@ -119,17 +119,57 @@ impl WireNet {
                 continue;
             }
 
-            // Swap
-            let old = module.grid.get_id_at(new_pos);
-            if let Some(old_id) = old {
+            if let Some(old_id) = module.grid.get_id_at(new_pos) {
+                // Check if we can actually move the old node.
                 if !module.can_move(old_id) {
                     continue;
                 }
-                module.grid.set(base_pos, old_id);
+                // Shift a chain of nodes, freeing new_pos.
+                self.shift_chain(module, new_pos, base_pos);
             }
+            // Move node.
+            assert_eq!(module.grid.get_id_at(new_pos),None);
             module.grid.set(new_pos, *id);
-            //println!(" - swapped {} {:?}",id,old);
         }
+    }
+
+    fn shift_chain(&self, module: &mut IRModule, start_pos: (i32,i32), end_pos: (i32,i32)) {
+        fn move_toward(a: (i32,i32), b: (i32,i32)) -> (i32,i32) {
+            let (ax,ay) = a;
+            let (bx,by) = b;
+            if ax > bx {
+                (ax-1,ay)
+            } else if ax < bx {
+                (ax+1,ay)
+            } else {
+                if ay > by {
+                    (ax,ay-1)
+                } else if ay < by {
+                    (ax,ay+1)
+                } else {
+                    panic!("can not move, a == b");
+                }
+            }
+        }
+
+        let mut target_pos = end_pos;
+        let mut source_pos = move_toward(target_pos,start_pos);
+        //println!("shift {:?} {:?}",start_pos,end_pos);
+        loop {
+            if let Some(id) = module.grid.get_id_at(source_pos) {
+                if module.can_move(id) {
+                    module.grid.set(target_pos, id);
+                    target_pos = source_pos;
+                    if target_pos == start_pos {
+                        return;
+                    }
+                }
+            }
+            source_pos = move_toward(source_pos,start_pos);
+        }
+
+        //println!("current pos = {:?} {:?}",source_pos,target_pos);
+        //panic!("rer");
     }
 }
 

@@ -44,6 +44,9 @@ impl IRModule {
                     add_arg(lhs, &mut saved, &mut stack);
                     add_arg(rhs, &mut saved, &mut stack);
                 },
+                IRNode::BinOpSame(arg,_) => {
+                    add_arg(arg, &mut saved, &mut stack);
+                },
                 IRNode::MultiDriver(args) => {
                     for arg in args {
                         add_arg(arg, &mut saved, &mut stack);

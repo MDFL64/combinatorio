@@ -41,7 +41,95 @@
 
 mod meme(x) {
     output(
-        1+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+        x+x+x+x+x+x+x+x+x+x +
+
+        x+x+x+x+x+x+x+x+x+x +
         x+x+x+x+x+x+x+x+x+x +
         x+x+x+x+x+x+x+x+x+x +
         x+x+x+x+x+x+x+x+x+x +
