@@ -25,7 +25,8 @@ pub enum Expr<'a> {
     BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>),
     UnOp(UnaryOp,Box<Expr<'a>>),
     If(Box<Expr<'a>>,Box<Expr<'a>>,Option<Box<Expr<'a>>>),
-    Match(Box<Expr<'a>>,Vec<(Expr<'a>,Expr<'a>)>)
+    Match(Box<Expr<'a>>,Vec<(Expr<'a>,Expr<'a>)>),
+    SubModule(String,Vec<Expr<'a>>)
 }
 
 struct Parser<'a> {
@@ -229,8 +230,26 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
     let tok = parser.next();
 
     match tok {
-        // TODO could be a module call!
-        LexToken::Ident(id) => Expr::Ident(id),
+        LexToken::Ident(id) => {
+            if parser.peek() == LexToken::OpParenOpen {
+                let mut sub_args = Vec::new();
+                parser.take(LexToken::OpParenOpen);
+
+                if parser.peek() == LexToken::OpParenClose {
+                    parser.take(LexToken::OpParenClose);
+                } else {
+                    loop {
+                        sub_args.push(parse_expr(parser));
+                        if parser.take_comma_or_close_paren() {
+                            break;
+                        }
+                    }
+                }
+                Expr::SubModule(id.to_owned(),sub_args)
+            } else {
+                Expr::Ident(id)
+            }
+        },
         LexToken::KeyIf => {
             parser.take(LexToken::OpParenOpen);
             let cond = parse_expr(parser);

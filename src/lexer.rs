@@ -76,8 +76,8 @@ impl<'a> Iterator for Lexer<'a> {
             let parse_str = self.chars.as_str();
             
             return if let Some(c) = self.chars.next() {
-                if c.is_ascii_alphabetic() {
-                    let token_end = parse_str.find(|c: char| !c.is_ascii_alphanumeric())
+                if c.is_ascii_alphabetic() || c == '_' {
+                    let token_end = parse_str.find(|c: char| !c.is_ascii_alphanumeric() && c != '_')
                         .unwrap_or(parse_str.len());
                     let token_str = &parse_str[0..token_end];
                     let remainder_str = &parse_str[token_end..];
@@ -139,6 +139,14 @@ impl<'a> Iterator for Lexer<'a> {
                             if next_char == Some('/') {
                                 // Single-line comment.
                                 while self.chars.next() != Some('\n') { }
+                                continue;
+                            } else if next_char == Some('*') {
+                                self.chars.next();
+                                while !self.chars.as_str().starts_with("*/") {
+                                    self.chars.next();
+                                }
+                                self.chars.next();
+                                self.chars.next();
                                 continue;
                             } else {
                                 Some(LexToken::OpDiv)

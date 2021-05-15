@@ -12,6 +12,7 @@ mod layout;
 mod to_blueprint;
 mod opt;
 
+#[derive(Debug)]
 pub struct IRModule {
     name: String,
     settings: Rc<CompileSettings>,
@@ -121,14 +122,14 @@ impl IRModule {
         }
     }
 
-    fn add_stmt(&mut self, stmt: &Statement) {
+    fn add_stmt(&mut self, stmt: &Statement, module_table: &HashMap<String, IRModule>) {
         if self.outputs_set {
             panic!("Module '{}': No statements may appear after output(...).",self.name);
         }
         match stmt {
             Statement::Output(out_exprs) => {
                 for (out_i, expr) in out_exprs.iter().enumerate() {
-                    let out_arg = self.add_expr(expr);
+                    let out_arg = self.add_expr(expr, module_table);
                     self.nodes.push(IRNode::Output(out_i as u32, out_arg));
                 }
                 self.port_count += out_exprs.len() as i32;
@@ -138,7 +139,7 @@ impl IRModule {
                 // TODO check sub-module calls
                 assert!(idents.len() == 1);
                 let (ident,is_multi_driver) = idents[0];
-                let result_arg = self.add_expr(expr);
+                let result_arg = self.add_expr(expr, module_table);
 
                 if is_multi_driver {
                     if !self.bindings.contains_key(&ident.to_owned()) {
@@ -170,7 +171,7 @@ impl IRModule {
         }
     }
 
-    fn add_expr(&mut self, expr: &Expr) -> IRArg {
+    fn add_expr(&mut self, expr: &Expr, module_table: &HashMap<String, IRModule>) -> IRArg {
         match expr {
             Expr::Ident(name) => {
                 if let Some((arg,_is_md)) = self.bindings.get(*name) {
@@ -183,8 +184,8 @@ impl IRModule {
                 narrow_constant(*num)
             },
             Expr::BinOp(lhs,op,rhs) => {
-                let lex = self.add_expr(lhs);
-                let rex = self.add_expr(rhs);
+                let lex = self.add_expr(lhs, module_table);
+                let rex = self.add_expr(rhs, module_table);
                 
                 self.nodes.push(IRNode::BinOp(lex,*op,rex));
 
@@ -202,7 +203,7 @@ impl IRModule {
                 }
 
                 // Try normal constant-folding
-                let ir_arg = self.add_expr(arg);
+                let ir_arg = self.add_expr(arg, module_table);
 
                 // Convert to a subtraction bin-op
                 self.nodes.push(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg));
@@ -210,13 +211,13 @@ impl IRModule {
             },
             Expr::If(cond,val_true,val_false) => {
 
-                let arg_cond = self.add_expr(cond);
-                let arg_true = self.add_expr(val_true);
+                let arg_cond = self.add_expr(cond, module_table);
+                let arg_true = self.add_expr(val_true, module_table);
 
                 let true_result = self.add_node(IRNode::Gate(arg_cond.clone(),true,arg_true));
 
                 if let Some(val_false) = val_false {
-                    let arg_false = self.add_expr(val_false);
+                    let arg_false = self.add_expr(val_false, module_table);
 
                     let false_result = self.add_node(IRNode::Gate(arg_cond,false,arg_false));
 
@@ -226,20 +227,72 @@ impl IRModule {
                 }
             },
             Expr::Match(expr_in,match_list) => {
-                let arg_in = self.add_expr(expr_in);
+                let arg_in = self.add_expr(expr_in, module_table);
 
                 let mut results = Vec::new();
                 for (expr_test,expr_res) in match_list {
-                    let arg_test = self.add_expr(expr_test);
-                    let arg_res = self.add_expr(expr_res);
+                    let arg_test = self.add_expr(expr_test, module_table);
+                    let arg_res = self.add_expr(expr_res, module_table);
 
                     let compare = self.add_node(IRNode::BinOp(arg_in.clone(),BinOp::CmpEq,arg_test));
                     results.push(self.add_node(IRNode::Gate(compare,true,arg_res)));
                 }
 
                 self.add_node(IRNode::MultiDriver(results))
+            },
+            Expr::SubModule(name,args) => {
+                let args: Vec<_> = args.iter().map(|arg| self.add_expr(arg, module_table)).collect();
+                if let Some(submod) = module_table.get(name) {
+                    let offset = self.nodes.len() as u32;
+                    let mut result: Option<IRArg> = None;
+                    for node in &submod.nodes {
+                        if let Some((out_i,out_arg)) = self.add_node_from_submodule(node, offset, &args) {
+                            assert!(out_i == 0);
+                            result = Some(out_arg);
+                        }
+                    }
+                    result.expect("submodule result missing")
+                } else {
+                    panic!("Module '{}': Submodule '{}' is not defined.",self.name,name);
+                }
             }
         }
+    }
+
+    fn add_node_from_submodule(&mut self, node: &IRNode, offset: u32, inputs: &Vec<IRArg>) -> Option<(u32,IRArg)> {
+        
+        let offset_arg = |arg: &IRArg| {
+            if let IRArg::Link(n,c) = arg {
+                IRArg::Link(*n + offset, *c)
+            } else {
+                arg.clone()
+            }
+        };
+
+        let adjusted = match node {
+            // HACK: Input abuses multi-drivers to proxy signals.
+            IRNode::Input(n) => {
+                let arg = &inputs[*n as usize];
+                IRNode::MultiDriver(vec!(arg.clone()))
+            },
+            IRNode::Output(n,arg) => {
+                return Some((*n,offset_arg(arg)));
+            },
+            IRNode::BinOp(lhs,op,rhs) => {
+                IRNode::BinOp(offset_arg(lhs),*op,offset_arg(rhs))
+            },
+            IRNode::MultiDriver(args) => {
+                let fixed_args = args.iter().map(offset_arg).collect();
+                IRNode::MultiDriver(fixed_args)
+            },
+            IRNode::BinOpCmpGate(lhs,op,rhs,gated) => {
+                IRNode::BinOpCmpGate(offset_arg(lhs),*op,*rhs,offset_arg(gated))
+            },
+            IRNode::Removed => IRNode::Removed,
+            _ => panic!("submodule node {:?}",node)
+        };
+        self.nodes.push(adjusted);
+        None
     }
 
     fn add_node(&mut self, node: IRNode) -> IRArg {
@@ -280,16 +333,16 @@ fn narrow_constant(x: i64) -> IRArg {
 
 // Consumes a list of AST modules and returns the IR for the final module.
 // Runs checks on the modules. May panic if an error is encountered.
-pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRModule {
-    //let defined: HashMap<String,IRModule> = HashMap::new();
+pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> HashMap<String,IRModule> {
+    let mut defined: HashMap<String,IRModule> = HashMap::new();
 
     for p_mod in parse_mods {
-        let mut ir = IRModule::new(p_mod.name.to_owned(), settings);
+        let mut ir = IRModule::new(p_mod.name.to_owned(), settings.clone());
 
         ir.add_args(&p_mod.arg_names);
 
         for stmt in p_mod.stmts {
-            ir.add_stmt(&stmt);
+            ir.add_stmt(&stmt, &defined);
         }
 
         ir.check_multi_driver();
@@ -309,9 +362,8 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> IRMod
             ir.prune();
         }
         
-        return ir;
+        defined.insert(ir.name.clone(), ir);
     }
 
-    // No modules provided.
-    panic!("No modules to compile.");
+    defined
 }

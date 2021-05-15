@@ -1,6 +1,6 @@
 
 use super::{IRModule, IRNode, IRArg};
-
+use rand::Rng;
 
 #[derive(Debug)]
 enum SymbolConstraint {
@@ -53,21 +53,30 @@ impl IRModule {
         let mut pass_num = 1;
         let mut errors = 0;
         print!("Symbol selection... ");
+        let mut rng = rand::thread_rng();
         loop {
             for cons in &constraints {
                 match cons {
                     SymbolConstraint::NotEqual(a,b) => {
                         if self.out_symbols[*a as usize] == self.out_symbols[*b as usize] {
                             errors += 1;
-                            // TODO should we pick a symbol to increment at random?
-                            self.out_symbols[*b as usize] += 1;
+                            if rng.gen::<bool>() {
+                                self.out_symbols[*a as usize] += 1;
+                            } else {
+                                self.out_symbols[*b as usize] += 1;
+                            }
                         }
                     },
                     SymbolConstraint::Equal(a,b) => {
                         if self.out_symbols[*a as usize] != self.out_symbols[*b as usize] {
                             errors += 1;
+                            println!(">> {:?}",cons);
                             // TODO should we pick a symbol to copy at random?
-                            self.out_symbols[*b as usize] += self.out_symbols[*a as usize];
+                            if self.out_symbols[*a as usize] < self.out_symbols[*b as usize] {
+                                self.out_symbols[*b as usize] = self.out_symbols[*a as usize];
+                            } else {
+                                self.out_symbols[*a as usize] = self.out_symbols[*b as usize];
+                            }
                         }
                     },
                     //_ => panic!("todo handle constraint {:?}",cons)
@@ -79,7 +88,10 @@ impl IRModule {
             pass_num += 1;
             errors = 0;
             if pass_num > 1000 {
-                panic!("too many passes");
+                for (i,node) in self.nodes.iter().enumerate() {
+                    println!("{}: {:?}",i,node);
+                }
+                panic!("too many passes {:?}",constraints);
             }
         }
         println!("Done in {} passes.",pass_num);

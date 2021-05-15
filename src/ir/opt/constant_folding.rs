@@ -110,6 +110,13 @@ impl IRModule {
                             changes += 1;
                         }
                     },
+                    IRNode::Removed => (),
+                    IRNode::BinOpCmpGate(_lhs,_op,_rhs,_gated) => {
+                        // We still need to fold these expanded nodes because
+                        // they can be added by submodules that have already gone
+                        // through the opt process
+                        println!("todo fold cmp gate");
+                    },
                     _ => panic!("fold {:?}",node)
                 }
             }
@@ -118,6 +125,6 @@ impl IRModule {
                 break;
             }
         }
-        println!("=> {:?}",self.nodes);
+        //println!("=> {:?}",self.nodes);
     }
 }
