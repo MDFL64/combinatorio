@@ -1,36 +1,24 @@
-// MVP
-// + - * / % **
-// let statements (NO COMMAS)
-// output() (SINGLE VALUE)
+// the following changes for 1.0:
 
-// TODO:
+// better syntax for multi-driver assignment, IE
 
-compare_gate(x==1,y)
+let* a = _;
 
-// equivilant to mux
-match(val,
-    1 => a,
-    2 => b,
-    3 => c
-)
+// remove multi-ret trash, replace with busses
 
-mod if(sel,t_val,f_val) {
-    let @res = __eq_pass(sel,1,t_val);
-    let @res = __eq_pass(sel,0,f_val);
+let a = {b,c,d:e};
+
+// remove output(), replace with a more familiar return statement
+
+return 100;
+return a;
+return {a,b,c};
+
+// types:
+
+mod main(a:$0,b:$A,c:{d,e,f:$B}): {ret1,ret2:$C} {
+    // ...
 }
 
-mod reg(clk,write,value) {
-    let @stored = 0;
-    let @stored = if(clk & write, value, stored);
-    output(stored);
-}
-
-mod add3(a,b,c) {
-    let result = a + b + c;
-    output(result,2,3,4);
-}
-
-mod main() {
-    let a,b,c,d = add3(1,2,3);
-    output(a+b+c+d);
-}
+// signal names are case insensitive, $A = $a
+// signal names may or may not be respected when placed on modules other than top-level (configurable?)

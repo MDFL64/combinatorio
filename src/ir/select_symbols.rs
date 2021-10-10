@@ -72,7 +72,7 @@ impl IRModule {
                             errors += 1;
                             println!(">> {:?}",cons);
                             // TODO should we pick a symbol to copy at random?
-                            if self.out_symbols[*a as usize] < self.out_symbols[*b as usize] {
+                            if rng.gen::<bool>() {
                                 self.out_symbols[*b as usize] = self.out_symbols[*a as usize];
                             } else {
                                 self.out_symbols[*a as usize] = self.out_symbols[*b as usize];

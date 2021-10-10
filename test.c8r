@@ -13,15 +13,7 @@ mod cell(clk,write,val) {
     output(stored);
 }
 
-mod digits(x) {
-    let d1 = x % 10;
-    let d2 = (x / 10) % 10;
-    let d3 = (x / 100) % 10;
-    let d4 = (x / 1000) % 10;
-    output(d4,d3,d2,d1);
-}
-
-mod segments(x) {
+/*mod segments(x) {
 
     let y = match(x) {
         0 => 63,
@@ -36,19 +28,29 @@ mod segments(x) {
         9 => 111
     };
 
-    output(y&1,y&2,y&4,y&8,y&16,y&32,y&64);
+    output(y&1 @ A,y&2 @ B,y&4 @ C,y&8 @ D,y&16 @ E,y&32 @ F,y&64 @ G);
+}*/
+
+mod gpu_slice(C_Y,clk,data,y,write,clear) {
+    let row_selected = C_Y == y;
+    let $stored = 0;
+    let new_val = stored ^ data;
+    let $stored = cell(clk,write & row_selected,new_val);
+    let collision = if(row_selected, new_val < stored, 0);
+    output(stored); // new_val < stored
 }
 
-mod clock_60() {
-    output(clock(60));
-}
+mod main(data,x,y,write,clear) {
+    let clk = clock(30);
 
-mod main() {
-    let clk = clock(60);
-    let $next_val = 0;
-    let val = cell(clk,1,next_val);
-    let $next_val = val + 1;
-    output(val);
+    let write_low = write & (x < 32);
+    let data_low = data << x;
+
+    let r0 = gpu_slice(0,    clk,data_low,y,write_low,clear);
+    let r1 = gpu_slice(1,    clk,data_low,y,write_low,clear);
+    let r2 = gpu_slice(2,    clk,data_low,y,write_low,clear);
+    let r3 = gpu_slice(3,    clk,data_low,y,write_low,clear);
+    output(r0,r1,r2,r3);
 }
 
 /*mod meme(x) {
