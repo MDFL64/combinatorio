@@ -16,7 +16,7 @@ pub struct CompileSettings {
 }
 
 fn main() {
-    let source = std::fs::read_to_string("test.c8r").expect("failed to read file");
+    let source = std::fs::read_to_string("test.c8").expect("failed to read file");
     let parse_results = crate::parser::parse(&source);
     
     let settings = Rc::new(CompileSettings{
