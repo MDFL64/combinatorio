@@ -21,7 +21,8 @@ impl DisjointSet {
         match &self.data[i] {
             SetNode::Root(id) => *id,
             SetNode::Child(id) => {
-                let correct_id = self.get(*id);
+                let id = *id; // remove borrow here to prevent conflict
+                let correct_id = self.get(id);
                 self.data[i] = SetNode::Child(correct_id);
                 correct_id
             }

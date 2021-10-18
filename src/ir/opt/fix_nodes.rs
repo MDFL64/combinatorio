@@ -97,6 +97,7 @@ impl IRModule {
         }
     }
 
+    /// TODO what is this for and can we abuse add_node's slot argument better
     fn add_node_at(&mut self, i: usize, node: IRNode) -> IRArg {
         let mut offset = 0;
         while offset >= i && i + offset < self.nodes.len() {
@@ -112,6 +113,6 @@ impl IRModule {
             }
             offset += 1;
         }
-        self.add_node(node)
+        self.add_node(node,None)
     }
 }

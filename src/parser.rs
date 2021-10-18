@@ -14,7 +14,7 @@ pub struct Module<'a> {
 pub enum Statement<'a> {
     Terminator,
     Empty,
-    VarBinding(Vec<(&'a str,bool)>,Expr<'a>),
+    VarBinding(Vec<&'a str>,Expr<'a>),
     Output(Vec<Expr<'a>>)
 }
 
@@ -137,15 +137,9 @@ fn parse_stmt<'a>(parser: &mut Parser<'a>) -> Statement<'a> {
             Statement::Output(out_args)
         },
         LexToken::KeyLet => {
-            let is_multi_driver = if parser.peek() == LexToken::OpMultiDriver {
-                parser.next();
-                true
-            } else {
-                false
-            };
             let ident = parser.take_ident();
             parser.take(LexToken::OpAssign);
-            Statement::VarBinding(vec!((ident,is_multi_driver)),parse_expr(parser))
+            Statement::VarBinding(vec!(ident),parse_expr(parser))
         },
         LexToken::OpSemicolon => Statement::Empty,
         LexToken::OpBraceClose => Statement::Terminator,

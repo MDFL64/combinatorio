@@ -1,16 +1,19 @@
+// A clock that outputs 1 every n ticks.
 mod clock(period) {
-    let $n = 0;
-    let $n = n + 1;
-
+    let n = n + 1;
     output((n % period) == 0);
 }
 
+// A register that stores a single value.
 mod cell(clk,write,val) {
-
-    let $stored = 0;
-    let $stored = if(clk & write, val, stored);
-
+    let stored = if(clk & write, val, stored);
     output(stored);
+}
+
+mod main() {
+    let a = b + 1;
+    let b = a + 1;
+    output(a + b);
 }
 
 /*mod segments(x) {
@@ -29,7 +32,7 @@ mod cell(clk,write,val) {
     };
 
     output(y&1 @ A,y&2 @ B,y&4 @ C,y&8 @ D,y&16 @ E,y&32 @ F,y&64 @ G);
-}*/
+}
 
 mod gpu_slice(C_Y,clk,data,y,write,clear) {
     let row_selected = C_Y == y;

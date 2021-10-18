@@ -2,23 +2,25 @@
 
 // better syntax for multi-driver assignment, IE
 
-let* a = _;
-
-// remove multi-ret trash, replace with busses
-
-let a = {b,c,d:e};
+let *a = _;
 
 // remove output(), replace with a more familiar return statement
 
 return 100;
 return a;
-return {a,b,c};
+return (a,b,c);
 
 // types:
 
-mod main(a:$0,b:$A,c:{d,e,f:$B}): {ret1,ret2:$C} {
+mod main(a:$0,b:$A,c:_): ($A,_,$C) {
     // ...
 }
 
 // signal names are case insensitive, $A = $a
 // signal names may or may not be respected when placed on modules other than top-level (configurable?)
+
+// FUTURE RELEASE:
+// add busses -- they should coexist with multi-ret syntax -- is this a good syntax or not?
+// bus{}
+
+let a = {b,c,d:e};
