@@ -11,9 +11,9 @@ mod cell(clk,write,val) {
 }
 
 mod main() {
-    let a = b + 1;
-    let b = a + 1;
-    output(a + b);
+    let a = b + 10;
+    let b = clock(10);
+    output(a);
 }
 
 /*mod segments(x) {

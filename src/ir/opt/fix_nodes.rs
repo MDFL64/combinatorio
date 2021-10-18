@@ -95,9 +95,41 @@ impl IRModule {
                 _ => ()
             }
         }
+
+        // 5. check for short-cycles, IE
+        // let a = b;
+        // let b = a;
+        for i in 0..self.nodes.len() {
+            let node = &self.nodes[i];
+            if let IRNode::MultiDriver(args) = node {
+                for arg in args {
+                    if self.detect_short_cycles(i,arg) {
+                        panic!("Short cycle detected. TODO add more useful information.");
+                    }
+                }
+            }
+        }
     }
 
-    /// TODO what is this for and can we abuse add_node's slot argument better
+    fn detect_short_cycles(&self, base_index: usize, arg: &IRArg) -> bool {
+        if let IRArg::Link(target_index,_) = arg {
+            let target_index = *target_index as usize;
+            if target_index == base_index {
+                return true;
+            }
+            let node = &self.nodes[target_index];
+            if let IRNode::MultiDriver(args) = node {
+                for arg in args {
+                    if self.detect_short_cycles(base_index,arg) {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    /// IIRC the point of this is to add nodes close to a specific index, to prevent spaghetti
     fn add_node_at(&mut self, i: usize, node: IRNode) -> IRArg {
         let mut offset = 0;
         while offset >= i && i + offset < self.nodes.len() {

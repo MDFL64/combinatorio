@@ -182,10 +182,12 @@ impl IRModule {
     fn add_expr(&mut self, expr: &Expr, module_table: &HashMap<String, IRModule>, desired_slot: Option<u32>) -> IRArg {
         match expr {
             Expr::Ident(name) => {
-                if desired_slot.is_some() {
-                    panic!("can not map an identifier to a desired slot - this is a bug");
-                }
                 if let Some(arg) = self.bindings.get(*name) {
+                    if desired_slot.is_some() {
+                        // hack to make assignments work properly
+                        let arg = arg.clone();
+                        return self.add_node(IRNode::MultiDriver(vec!(arg)),desired_slot);
+                    }
                     arg.clone()
                 } else {
                     panic!("Module '{}': '{}' is not defined.",self.name,name);
@@ -251,9 +253,6 @@ impl IRModule {
                 self.add_node(IRNode::MultiDriver(results),desired_slot)
             },
             Expr::SubModule(name,args) => {
-                if desired_slot.is_some() {
-                    panic!("can not map a sub-module to a desired slot - this is a bug");
-                }
                 let args: Vec<_> = args.iter().map(|arg| self.add_expr(arg, module_table, None)).collect();
                 if let Some(submod) = module_table.get(name) {
                     let offset = self.nodes.len() as u32;
@@ -264,7 +263,13 @@ impl IRModule {
                             result = Some(out_arg);
                         }
                     }
-                    result.expect("submodule result missing")
+                    let result = result.expect("submodule result missing");
+                    // HACK! copy result to output
+                    if desired_slot.is_some() {
+                        self.add_node(IRNode::MultiDriver(vec!(result)), desired_slot)
+                    } else {
+                        result
+                    }
                 } else {
                     panic!("Module '{}': Submodule '{}' is not defined.",self.name,name);
                 }
