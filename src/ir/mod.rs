@@ -87,8 +87,8 @@ impl IRModule {
         println!("NODES:");
         for (i,node) in self.nodes.iter().enumerate() {
             let pos = self.get_true_pos(i as u32 );
-            let symbol = self.out_symbols.get(i).unwrap();
-            println!("    {}: {:?}, pos = {:?}, symbol = {}",i,node,pos,symbol);
+            let symbol = self.out_symbols.get(i);
+            println!("    {}: {:?}, pos = {:?}, symbol = {:?}",i,node,pos,symbol);
         }
         println!("LINKS:");
         for link in &self.links {
@@ -96,21 +96,22 @@ impl IRModule {
         }
     }
 
-    fn get_true_pos(&self, id: u32) -> (f32,f32) {
-        let pos = self.grid.get_pos_for(id);
-        let x = pos.0 as f32;
-        let base_y = pos.1 as f32 * 2.0;
-        let node = &self.nodes[id as usize];
-        let offset_y = match node {
-            IRNode::BinOp(..) |
-            IRNode::BinOpCmpGate(..) |
-            IRNode::BinOpSame(..) => 0.5,
-            IRNode::Input(..) |
-            IRNode::Output(..) |
-            IRNode::Constant(..) => 0.0,
-            _ => panic!("todo offset {:?}",node)
-        };
-        (x, base_y + offset_y)
+    fn get_true_pos(&self, id: u32) -> Option<(f32,f32)> {
+        self.grid.get_pos_for(id).map(|pos|{
+            let x = pos.0 as f32;
+            let base_y = pos.1 as f32 * 2.0;
+            let node = &self.nodes[id as usize];
+            let offset_y = match node {
+                IRNode::BinOp(..) |
+                IRNode::BinOpCmpGate(..) |
+                IRNode::BinOpSame(..) => 0.5,
+                IRNode::Input(..) |
+                IRNode::Output(..) |
+                IRNode::Constant(..) => 0.0,
+                _ => panic!("todo offset {:?}",node)
+            };
+            (x, base_y + offset_y)
+        })
     }
 
     fn add_args(&mut self, arg_names: &Vec<&str>) {
@@ -154,14 +155,22 @@ impl IRModule {
                 self.outputs_set = true;
             },
             Statement::VarBinding(idents,expr) => {
-                // TODO check sub-module calls (???)
-                assert!(idents.len() == 1);
-                let ident = idents[0];
+                let out_slots: Vec<_> = idents.iter().map(|ident| {
+                    if let IRArg::Link(out_slot,_) = self.bindings.get(*ident).unwrap() {
+                        *out_slot
+                    } else {
+                        panic!("var bindings should always be links");
+                    }
+                }).collect();
 
-                if let IRArg::Link(out_slot,_) = self.bindings.get(ident).unwrap() {
-                    self.add_expr(expr, module_table, Some(*out_slot));
+                if out_slots.len() == 1 {
+                    self.add_expr(expr, module_table, Some(out_slots[0]));
                 } else {
-                    panic!("var bindings should always be links");
+                    if let Expr::SubModule(name,args) = expr {
+                        self.add_submodule(module_table, name,args,Some(&out_slots));
+                    } else {
+                        panic!("multi-assignment can only be used with sub-modules");
+                    }
                 }
             },
             _ => panic!("todo handle stmt {:?}",stmt)
@@ -256,14 +265,18 @@ impl IRModule {
                 let args: Vec<_> = args.iter().map(|arg| self.add_expr(arg, module_table, None)).collect();
                 if let Some(submod) = module_table.get(name) {
                     let offset = self.nodes.len() as u32;
-                    let mut result: Option<IRArg> = None;
+                    let mut results: Vec<Option<IRArg>> = Vec::new();
                     for node in &submod.nodes {
                         if let Some((out_i,out_arg)) = self.add_node_from_submodule(node, offset, &args) {
-                            assert!(out_i == 0);
-                            result = Some(out_arg);
+                            let out_i = out_i as usize;
+                            if out_i >= results.len() {
+                                results.resize(out_i + 1, None);
+                            }
+                            results[out_i] = Some(out_arg);
                         }
                     }
-                    let result = result.expect("submodule result missing");
+                    assert!(results.len()==1);
+                    let result = results[0].clone().unwrap();
                     // HACK! copy result to output
                     if desired_slot.is_some() {
                         self.add_node(IRNode::MultiDriver(vec!(result)), desired_slot)
@@ -274,6 +287,41 @@ impl IRModule {
                     panic!("Module '{}': Submodule '{}' is not defined.",self.name,name);
                 }
             }
+        }
+    }
+
+    fn add_submodule(&mut self, module_table: &HashMap<String, IRModule>,
+        mod_name: &str, inputs: &Vec<Expr>, out_slots: Option<&Vec<u32>>
+    ) -> Option<IRArg> {
+
+        let args: Vec<_> = inputs.iter().map(|arg| self.add_expr(arg, module_table, None)).collect();
+        if let Some(submod) = module_table.get(mod_name) {
+            let offset = self.nodes.len() as u32;
+            let mut results: Vec<Option<IRArg>> = Vec::new();
+            for node in &submod.nodes {
+                if let Some((out_i,out_arg)) = self.add_node_from_submodule(node, offset, &args) {
+                    let out_i = out_i as usize;
+                    if out_i >= results.len() {
+                        results.resize(out_i + 1, None);
+                    }
+                    results[out_i] = Some(out_arg);
+                }
+            }
+
+            if results.len() != out_slots.map(|x| x.len()).unwrap_or(1) {
+                panic!("Submodule mismatch in expected and actual result lengths.");
+            }
+
+            if let Some(out_slots) = out_slots {
+                for (res,out_slot) in results.iter().zip(out_slots.iter()) {
+                    self.add_node(IRNode::MultiDriver(vec!(res.clone().unwrap())), Some(*out_slot));
+                }
+                None
+            } else {
+                Some(results[0].clone().unwrap())
+            }
+        } else {
+            panic!("Module '{}': Submodule '{}' is not defined.",self.name,mod_name);
         }
     }
 
@@ -294,6 +342,8 @@ impl IRModule {
                 IRNode::MultiDriver(vec!(arg.clone()))
             },
             IRNode::Output(n,arg) => {
+                // we must push a dummy node to keep indexes consistent
+                self.nodes.push(IRNode::Removed);
                 return Some((*n,offset_arg(arg)));
             },
             IRNode::BinOp(lhs,op,rhs) => {

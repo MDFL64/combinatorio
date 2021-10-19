@@ -226,17 +226,17 @@ impl IRModule {
         for (id, node) in self.nodes.iter().enumerate() {
             match node {
                 IRNode::Input(_) => {
-                    let pos = self.get_true_pos(id as u32);
+                    let pos = self.get_true_pos(id as u32).unwrap();
                     let symbol = self.out_symbols[id];
                     ent_ids[id] = builder.add_constant(pos,symbol,0);
                 },
                 IRNode::Constant(x) => {
-                    let pos = self.get_true_pos(id as u32);
+                    let pos = self.get_true_pos(id as u32).unwrap();
                     let symbol = self.out_symbols[id];
                     ent_ids[id] = builder.add_constant(pos,symbol,*x);
                 },
                 IRNode::Output(_,arg) => {
-                    let pos = self.get_true_pos(id as u32);
+                    let pos = self.get_true_pos(id as u32).unwrap();
                     if let IRArg::Constant(n) = arg {
                         ent_ids[id] = builder.add_constant(pos,0,*n);
                     } else {
@@ -244,7 +244,7 @@ impl IRModule {
                     }
                 },
                 IRNode::BinOp(lhs,op,rhs) => {
-                    let pos = self.get_true_pos(id as u32);
+                    let pos = self.get_true_pos(id as u32).unwrap();
                     if !op.is_compare() {
                         ent_ids[id] = builder.add_arithmetic(pos,
                             op.to_str().to_owned(), 
@@ -255,7 +255,7 @@ impl IRModule {
                     } else {
                         if let IRArg::Link(lhs_id,_) = lhs {
                             let lhs_symbol = self.out_symbols[*lhs_id as usize];
-                            let pos = self.get_true_pos(id as u32);
+                            let pos = self.get_true_pos(id as u32).unwrap();
                             ent_ids[id] = builder.add_decider(pos,
                                 op.to_str().to_owned(),
                                 lhs_symbol,
@@ -269,7 +269,7 @@ impl IRModule {
                     }
                 },
                 IRNode::BinOpSame(arg,op) => {
-                    let pos = self.get_true_pos(id as u32);
+                    let pos = self.get_true_pos(id as u32).unwrap();
                     let arg_val = self.get_arg_symbol_or_const(arg);
                     ent_ids[id] = builder.add_arithmetic(pos,
                         op.to_str().to_owned(), 
@@ -281,7 +281,7 @@ impl IRModule {
                 IRNode::BinOpCmpGate(lhs,op,rhs,_gated) => {
                     if let IRArg::Link(lhs_id,_) = lhs {
                         let lhs_symbol = self.out_symbols[*lhs_id as usize];
-                        let pos = self.get_true_pos(id as u32);
+                        let pos = self.get_true_pos(id as u32).unwrap();
                         ent_ids[id] = builder.add_decider(pos,
                             op.to_str().to_owned(),
                             lhs_symbol,

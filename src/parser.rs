@@ -137,9 +137,23 @@ fn parse_stmt<'a>(parser: &mut Parser<'a>) -> Statement<'a> {
             Statement::Output(out_args)
         },
         LexToken::KeyLet => {
-            let ident = parser.take_ident();
-            parser.take(LexToken::OpAssign);
-            Statement::VarBinding(vec!(ident),parse_expr(parser))
+            if parser.peek() == LexToken::OpParenOpen {
+                let mut idents = Vec::new();
+                parser.take(LexToken::OpParenOpen);
+                // Don't worry about the empty case, why have zero vars?
+                loop {
+                    idents.push(parser.take_ident());
+                    if parser.take_comma_or_close_paren() {
+                        break;
+                    }
+                }
+                parser.take(LexToken::OpAssign);
+                Statement::VarBinding(idents,parse_expr(parser))
+            } else {
+                let ident = parser.take_ident();
+                parser.take(LexToken::OpAssign);
+                Statement::VarBinding(vec!(ident),parse_expr(parser))
+            }
         },
         LexToken::OpSemicolon => Statement::Empty,
         LexToken::OpBraceClose => Statement::Terminator,

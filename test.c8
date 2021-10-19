@@ -10,10 +10,13 @@ mod cell(clk,write,val) {
     output(stored);
 }
 
-mod main() {
-    let a = b + 10;
-    let b = clock(10);
-    output(a);
+mod multiret(a,b) {
+    output(a+b,a*b);
+}
+
+mod main(a,b) {
+    let (x,y) = multiret(a,b);
+    output(x+5,y+5);
 }
 
 /*mod segments(x) {
@@ -33,7 +36,7 @@ mod main() {
 
     output(y&1 @ A,y&2 @ B,y&4 @ C,y&8 @ D,y&16 @ E,y&32 @ F,y&64 @ G);
 }
-
+/*
 mod gpu_slice(C_Y,clk,data,y,write,clear) {
     let row_selected = C_Y == y;
     let $stored = 0;

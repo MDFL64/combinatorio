@@ -41,8 +41,8 @@ impl WireNet {
                         continue;
                     }
 
-                    let pos_a = module.get_true_pos(self.connections[id_a].0);
-                    let pos_b = module.get_true_pos(self.connections[id_b].0);
+                    let pos_a = module.get_true_pos(self.connections[id_a].0).unwrap();
+                    let pos_b = module.get_true_pos(self.connections[id_b].0).unwrap();
 
                     if !check_dist(square_dist(pos_a,pos_b)) {
                         continue;
@@ -85,7 +85,7 @@ impl WireNet {
         let mut x_sum = 0.0;
         let mut y_sum = 0.0;
         for (id,_) in &self.connections {
-            let pos = module.grid.get_pos_for(*id);
+            let pos = module.grid.get_pos_for(*id).unwrap();
             x_sum += pos.0 as f32;
             y_sum += pos.1 as f32;
         }
@@ -102,7 +102,7 @@ impl WireNet {
                 continue;
             }
 
-            let base_pos = module.grid.get_pos_for(*id);
+            let base_pos = module.grid.get_pos_for(*id).unwrap();
             if base_pos == mid_pos {
                 continue;
             }
@@ -287,8 +287,11 @@ impl Grid {
         self.node_positions.resize(size, None);
     }
 
-    pub fn get_pos_for(&self, id: u32) -> (i32,i32) {
-        self.node_positions[id as usize].unwrap()
+    pub fn get_pos_for(&self, id: u32) -> Option<(i32,i32)> {
+        if (id as usize) < self.node_positions.len() {
+            return self.node_positions[id as usize];
+        }
+        None
     }
 
     fn is_cell_filled(&self, key: (i32,i32)) -> bool {
