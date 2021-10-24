@@ -15,8 +15,10 @@ mod multiret(a,b) {
 }
 
 mod main(a,b) {
-    let (x,y) = multiret(a,b);
-    output(x+5,y+5);
+    let clk = clock(60);
+
+    let x = cell(clk,1,x+5);
+    output(x);
 }
 
 /*mod segments(x) {

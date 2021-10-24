@@ -30,7 +30,12 @@ impl DisjointSet {
     }
 
     pub fn merge(&mut self, a: usize, b: usize) {
-        self.data[a] = SetNode::Child(b);
+        let a_set = self.get(a);
+        let b_set = self.get(b);
+
+        if a_set != b_set {
+            self.data[a_set] = SetNode::Child(b_set);
+        }
     }
 
     pub fn count_sets(&self) -> u32 {
