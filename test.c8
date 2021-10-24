@@ -14,7 +14,7 @@ mod multiret(a,b) {
     output(a+b,a*b);
 }
 
-mod main(a,b) {
+mod main() {
     let clk = clock(60);
 
     let x = cell(clk,1,x+5);

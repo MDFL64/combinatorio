@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::blueprint::{ArithmeticConditions, Blueprint, Connection, ControlBehavior, DeciderConditions, Entity, Filter, Position, Signal};
+use crate::{blueprint::{ArithmeticConditions, Blueprint, Connection, ControlBehavior, DeciderConditions, Entity, Filter, Position, Signal}};
+use crate::symbols::signal_from_symbol_index;
 
 use super::{IRArg, IRModule, IRNode, WireColor};
 use crate::common::ConnectType;
@@ -11,20 +12,6 @@ struct BlueprintBuilder {
 
 fn make_pos(arg: (f32,f32)) -> Position {
     Position{x: arg.0, y: arg.1}
-}
-
-// TODO bidirectional mapping
-fn symbol_to_signal(symbol: u32) -> Signal {
-    match symbol {
-        0 => Signal{cat:"virtual".to_owned(),name:"signal-A".to_owned()},
-        1 => Signal{cat:"virtual".to_owned(),name:"signal-B".to_owned()},
-        2 => Signal{cat:"virtual".to_owned(),name:"signal-C".to_owned()},
-        3 => Signal{cat:"virtual".to_owned(),name:"signal-D".to_owned()},
-        4 => Signal{cat:"virtual".to_owned(),name:"signal-E".to_owned()},
-        5 => Signal{cat:"virtual".to_owned(),name:"signal-F".to_owned()},
-        6 => Signal{cat:"virtual".to_owned(),name:"signal-G".to_owned()},
-        _ => panic!("can't get signal for {}, please add more signals",symbol)
-    }
 }
 
 fn get_circuit_id(ent_type: &str, connect_type: ConnectType) -> u32 {
@@ -47,7 +34,7 @@ enum SymbolOrConstant {
 impl SymbolOrConstant {
     fn unpack(&self) -> (Option<Signal>,Option<i32>) {
         match self {
-            Self::Symbol(x) => (Some(symbol_to_signal(*x)),None),
+            Self::Symbol(x) => (Some(signal_from_symbol_index(*x)),None),
             Self::Constant(x) => (None,Some(*x)),
         }
     }
@@ -62,7 +49,7 @@ impl BlueprintBuilder{
 
     fn add_constant(&mut self, pos: (f32,f32), symbol: u32, count: i32) -> usize {
         let id = self.entities.len()+1;
-        let signal = symbol_to_signal(symbol);
+        let signal = signal_from_symbol_index(symbol);
         self.entities.push(Entity{
             entity_number: id as u32,
             name: "constant-combinator".to_owned(),
@@ -102,7 +89,7 @@ impl BlueprintBuilder{
 
         let (first_signal,first_constant) = lhs.unpack();
         let (second_signal,second_constant) = rhs.unpack();
-        let output_signal = Some(symbol_to_signal(out_symbol));
+        let output_signal = Some(signal_from_symbol_index(out_symbol));
 
         self.entities.push(Entity{
             entity_number: id as u32,
@@ -130,9 +117,9 @@ impl BlueprintBuilder{
     fn add_decider(&mut self, pos: (f32,f32), comparator: String, lhs_symbol: u32, rhs: SymbolOrConstant, out_symbol: u32, copy_count_from_input: bool) -> usize {
         let id = self.entities.len()+1;
 
-        let first_signal = symbol_to_signal(lhs_symbol);
+        let first_signal = signal_from_symbol_index(lhs_symbol);
         let (second_signal,constant) = rhs.unpack();
-        let output_signal = Some(symbol_to_signal(out_symbol));
+        let output_signal = Some(signal_from_symbol_index(out_symbol));
 
         self.entities.push(Entity{
             entity_number: id as u32,

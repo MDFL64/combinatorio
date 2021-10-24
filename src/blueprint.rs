@@ -87,7 +87,7 @@ pub struct DeciderConditions {
     pub copy_count_from_input: bool
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Signal {
     #[serde(rename = "type")]
     pub cat: String,
