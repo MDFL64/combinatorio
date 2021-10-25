@@ -25,7 +25,7 @@ pub struct IRModule {
     links: Vec<WireLink>,
 
     // copied straight from the parse module
-    arg_types: Option<Vec<Option<u32>>>,
+    arg_types: Vec<Option<u32>>,
     ret_types: Option<Vec<Option<u32>>>
 }
 
@@ -83,7 +83,7 @@ impl IRModule {
             grid: Default::default(),
             links: Vec::new(),
 
-            arg_types: None,
+            arg_types: Vec::new(),
             ret_types: None
         }
     }
@@ -420,10 +420,8 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> HashM
         ir.arg_types = p_mod.arg_types;
         ir.ret_types = p_mod.ret_types;
 
-        if let Some(arg_types) = &ir.arg_types {
-            if arg_types.len() != p_mod.arg_names.len() {
-                panic!("The number of args does not match the number of types. This should never happen.");
-            }
+        if ir.arg_types.len() != p_mod.arg_names.len() {
+            panic!("The number of args does not match the number of types. This should never happen.");
         }
 
         ir.add_args(&p_mod.arg_names);

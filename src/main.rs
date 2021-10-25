@@ -18,6 +18,8 @@ pub struct CompileSettings {
 
 fn main() {
 
+    let main_mod_name = std::env::args().nth(1).unwrap_or_else(|| "main".into());
+
     // TODO: load relative to executable/build path instead of PWD?
     symbols::load_symbols(Path::new("symbols.json"));
 
@@ -27,7 +29,7 @@ fn main() {
     let settings = Rc::new(CompileSettings{
         fold_constants: true,
         prune: true,
-        main_mod_name: "main".to_owned()
+        main_mod_name
     });
 
 

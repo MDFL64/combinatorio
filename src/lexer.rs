@@ -37,6 +37,7 @@ pub enum LexToken<'a> {
     OpSemicolon,
     OpMatchArrow,
     OpThinArrow,
+    OpColon,
 
     OpParenOpen,
     OpParenClose,
@@ -235,6 +236,7 @@ impl<'a> Iterator for Lexer<'a> {
                             }
                         },
 
+                        ':' => Some(LexToken::OpColon),
                         ',' => Some(LexToken::OpComma),
                         ';' => Some(LexToken::OpSemicolon),
 

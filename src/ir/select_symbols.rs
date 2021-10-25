@@ -20,7 +20,11 @@ impl IRModule {
 
         for (out_i,node) in self.nodes.iter().enumerate() {
             match node {
-                IRNode::Input(_) => (),
+                IRNode::Input(arg_n) => {
+                    if let Some(sym) = self.arg_types[*arg_n as usize] {
+                        constraints.push(SymbolConstraint::EqualSymbol(out_i as u32,sym));
+                    }
+                },
                 IRNode::Output(n,arg) => {
                     if let Some(ret_types) = &self.ret_types {
                         if let Some(sym) = ret_types[*n as usize] {

@@ -10,31 +10,34 @@ mod cell(clk,write,val) {
     output(stored);
 }
 
-mod segments(x) {
+// Converts a digit into signals to drive a 7 segment display.
+// Compiled as a separate blueprint.
+mod segments(x: $X) -> ($A,$B,$C,$D,$E,$F,$G) {
 
     let y = match(x) {
-        0 => 63,
+        0 => 0b0111111,
         1 => 6,
         2 => 91,
         3 => 79,
         4 => 102,
         5 => 109,
         6 => 125,
-        7 => 7,
-        8 => 127,
+        7 => 0b0000111,
+        8 => 0b1111111,
         9 => 111
     };
 
-    output(y&1,y&2,y&4,y&8,y&16,y&32,y&64);
+    output(y&1, y&2, y&4, y&8, y&16, y&32, y&64);
 }
 
-mod main() -> ($A,$B,$C,$D,$E,$F,$G) {
-    let clk = clock(60);
+// A counter that increments 10 times a second.
+// Has separate outputs for 4 digits.
+mod main() -> ($X,$X,$X,$X) {
+    let clk = clock(6);
 
     let x = cell(clk,1,x+1);
 
-    let (a,b,c,d,e,f,g) = segments(x % 10);
-    output(a,b,c,d,e,f,g);
+    output(x/1000%10, x/100%10, x/10%10, x%10);
 }
 
 /*

@@ -9,7 +9,7 @@ pub struct Module<'a> {
     pub name: &'a str,
     pub arg_names: Vec<&'a str>,
     pub stmts: Vec<Statement<'a>>,
-    pub arg_types: Option<Vec<Option<u32>>>,
+    pub arg_types: Vec<Option<u32>>,
     pub ret_types: Option<Vec<Option<u32>>>
 }
 
@@ -102,10 +102,19 @@ pub fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
         let mut mod_stmts = Vec::new();
         
         // Arguments
+        let mut arg_types = Vec::new();
         parser.take(LexToken::OpParenOpen);
         if parser.peek() != LexToken::OpParenClose {
             loop {
                 mod_args.push(parser.take_ident());
+                let ty = if parser.peek() == LexToken::OpColon {
+                    parser.take(LexToken::OpColon);
+                    parser.take_symbol()
+                } else {
+                    None
+                };
+                arg_types.push(ty);
+
                 if parser.take_comma_or_close_paren() {
                     break;
                 }
@@ -150,7 +159,7 @@ pub fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
             name: mod_name,
             arg_names: mod_args,
             stmts: mod_stmts,
-            arg_types: None,
+            arg_types,
             ret_types
         });
     }
