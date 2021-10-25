@@ -22,7 +22,11 @@ pub struct IRModule {
     outputs_set: bool,
     out_symbols: Vec<u32>,
     grid: Grid,
-    links: Vec<WireLink>
+    links: Vec<WireLink>,
+
+    // copied straight from the parse module
+    arg_types: Option<Vec<Option<u32>>>,
+    ret_types: Option<Vec<Option<u32>>>
 }
 
 #[derive(Debug,Clone,PartialEq)]
@@ -77,7 +81,10 @@ impl IRModule {
             outputs_set: false,
             out_symbols: Vec::new(),
             grid: Default::default(),
-            links: Vec::new()
+            links: Vec::new(),
+
+            arg_types: None,
+            ret_types: None
         }
     }
 
@@ -147,6 +154,11 @@ impl IRModule {
         }
         match stmt {
             Statement::Output(out_exprs) => {
+                if let Some(ret_types) = &self.ret_types {
+                    if out_exprs.len() != ret_types.len() {
+                        panic!("The number of returned values does not match the type signature.");
+                    }
+                }
                 for (out_i, expr) in out_exprs.iter().enumerate() {
                     let out_arg = self.add_expr(expr, module_table, None);
                     self.nodes.push(IRNode::Output(out_i as u32, out_arg));
@@ -356,6 +368,10 @@ impl IRModule {
             IRNode::BinOpCmpGate(lhs,op,rhs,gated) => {
                 IRNode::BinOpCmpGate(offset_arg(lhs),*op,*rhs,offset_arg(gated))
             },
+            IRNode::Constant(n) => {
+                // No adjustment needed.
+                IRNode::Constant(*n)
+            },
             IRNode::Removed => IRNode::Removed,
             _ => panic!("submodule node {:?}",node)
         };
@@ -401,6 +417,14 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> HashM
 
     for p_mod in parse_mods {
         let mut ir = IRModule::new(p_mod.name.to_owned(), settings.clone());
+        ir.arg_types = p_mod.arg_types;
+        ir.ret_types = p_mod.ret_types;
+
+        if let Some(arg_types) = &ir.arg_types {
+            if arg_types.len() != p_mod.arg_names.len() {
+                panic!("The number of args does not match the number of types. This should never happen.");
+            }
+        }
 
         ir.add_args(&p_mod.arg_names);
 

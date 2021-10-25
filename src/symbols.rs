@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use once_cell::sync::OnceCell;
-use std::{collections::HashMap, ops::Index, path::Path};
+use std::{collections::HashMap, path::Path};
 use crate::blueprint::Signal;
 
 struct SymbolInfo {
@@ -24,7 +24,7 @@ pub fn load_symbols(filename: &Path) {
     for symbol in symbols {
         let index = info.signals.len() as u32;
         info.signals.push(symbol.signal);
-        info.ident_map.insert(symbol.id,index);
+        info.ident_map.insert(symbol.id.to_uppercase(),index);
     }
     SYMBOL_INFO.set(info).ok();
 }
@@ -35,6 +35,11 @@ pub fn signal_from_symbol_index(index: u32) -> Signal {
     info.signals[index as usize].clone()
 }
 
-pub fn symbol_index_from_identifier() {
-    panic!("NYI");
+pub fn symbol_index_from_identifier(ident: &str) -> u32 {
+    let info = SYMBOL_INFO.get().expect("symbol info not loaded");
+    if let Some(n) = info.ident_map.get(&ident.to_uppercase()) {
+        *n
+    } else {
+        panic!("Signal name '{}' does not exist.",ident);
+    }
 }

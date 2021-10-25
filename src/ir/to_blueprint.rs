@@ -225,7 +225,8 @@ impl IRModule {
                 IRNode::Output(_,arg) => {
                     let pos = self.get_true_pos(id as u32).unwrap();
                     if let IRArg::Constant(n) = arg {
-                        ent_ids[id] = builder.add_constant(pos,0,*n);
+                        let symbol = self.out_symbols[id];
+                        ent_ids[id] = builder.add_constant(pos,symbol,*n);
                     } else {
                         ent_ids[id] = builder.add_pole(pos,false);
                     }

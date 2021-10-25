@@ -1,5 +1,6 @@
 use crate::lexer::{Lexer, LexToken};
 use crate::common::{BinOp,UnaryOp};
+use crate::symbols;
 
 use std::iter::Peekable;
 
@@ -7,7 +8,9 @@ use std::iter::Peekable;
 pub struct Module<'a> {
     pub name: &'a str,
     pub arg_names: Vec<&'a str>,
-    pub stmts: Vec<Statement<'a>>
+    pub stmts: Vec<Statement<'a>>,
+    pub arg_types: Option<Vec<Option<u32>>>,
+    pub ret_types: Option<Vec<Option<u32>>>
 }
 
 #[derive(Debug)]
@@ -51,6 +54,15 @@ impl<'a> Parser<'a> {
             ident_str
         } else {
             panic!("Expected ident, found {:?}.",present);
+        }
+    }
+
+    fn take_symbol(&mut self) -> Option<u32> {
+        let present = self.next();
+        if let LexToken::Symbol(symbol_str) = present {
+            Some(symbols::symbol_index_from_identifier(symbol_str))
+        } else {
+            panic!("Expected symbol, found {:?}.",present);
         }
     }
 
@@ -102,6 +114,29 @@ pub fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
             parser.take(LexToken::OpParenClose);
         }
         
+        let ret_types = if parser.peek() == LexToken::OpThinArrow {
+            parser.take(LexToken::OpThinArrow);
+
+            if parser.peek() == LexToken::OpParenOpen {
+                parser.take(LexToken::OpParenOpen);
+
+                if parser.peek() == LexToken::OpParenClose {
+                    parser.take(LexToken::OpParenClose);
+                    Some(vec!())
+                } else {
+                    let mut result = vec!(parser.take_symbol());
+                    while !parser.take_comma_or_close_paren() {
+                        result.push(parser.take_symbol());
+                    }
+                    Some(result)
+                }
+            } else {
+                Some(vec!(parser.take_symbol()))
+            }
+        } else {
+            None
+        };
+
         parser.take(LexToken::OpBraceOpen);
         loop {
             let stmt = parse_stmt(&mut parser);
@@ -114,7 +149,9 @@ pub fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
         modules.push(Module{
             name: mod_name,
             arg_names: mod_args,
-            stmts: mod_stmts
+            stmts: mod_stmts,
+            arg_types: None,
+            ret_types
         });
     }
 

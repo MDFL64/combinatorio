@@ -10,18 +10,7 @@ mod cell(clk,write,val) {
     output(stored);
 }
 
-mod multiret(a,b) {
-    output(a+b,a*b);
-}
-
-mod main() {
-    let clk = clock(60);
-
-    let x = cell(clk,1,x+5);
-    output(x);
-}
-
-/*mod segments(x) {
+mod segments(x) {
 
     let y = match(x) {
         0 => 63,
@@ -36,8 +25,18 @@ mod main() {
         9 => 111
     };
 
-    output(y&1 @ A,y&2 @ B,y&4 @ C,y&8 @ D,y&16 @ E,y&32 @ F,y&64 @ G);
+    output(y&1,y&2,y&4,y&8,y&16,y&32,y&64);
 }
+
+mod main() -> ($A,$B,$C,$D,$E,$F,$G) {
+    let clk = clock(60);
+
+    let x = cell(clk,1,x+1);
+
+    let (a,b,c,d,e,f,g) = segments(x % 10);
+    output(a,b,c,d,e,f,g);
+}
+
 /*
 mod gpu_slice(C_Y,clk,data,y,write,clear) {
     let row_selected = C_Y == y;

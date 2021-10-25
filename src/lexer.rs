@@ -3,6 +3,7 @@ use std::str::FromStr;
 #[derive(Debug,PartialEq,Clone,Copy)]
 pub enum LexToken<'a> {
     Ident(&'a str),
+    Symbol(&'a str),
     Number(i64),
 
     KeyMod,
@@ -35,6 +36,7 @@ pub enum LexToken<'a> {
     OpComma,
     OpSemicolon,
     OpMatchArrow,
+    OpThinArrow,
 
     OpParenOpen,
     OpParenClose,
@@ -128,10 +130,29 @@ impl<'a> Iterator for Lexer<'a> {
                     // Probably use another iterator wrapper if we want that?
                     // skip
                     continue;
+                } else if c == '$' {
+                    let parse_str = self.chars.as_str();
+
+                    let token_end = parse_str.find(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+                        .unwrap_or(parse_str.len());
+                    let token_str = &parse_str[0..token_end];
+                    let remainder_str = &parse_str[token_end..];
+
+                    self.chars = remainder_str.chars();
+
+                    Some(LexToken::Symbol(token_str))
                 } else {
                     match c {
                         '+' => Some(LexToken::OpAdd),
-                        '-' => Some(LexToken::OpSub),
+                        '-' => {
+                            let next_char = parse_str.chars().nth(1);
+                            if next_char == Some('>') {
+                                self.chars.next();
+                                Some(LexToken::OpThinArrow)
+                            } else {
+                                Some(LexToken::OpSub)
+                            }
+                        },
                         '%' => Some(LexToken::OpMod),
                         '/' => {
                             let next_char = parse_str.chars().nth(1);
