@@ -24,5 +24,30 @@
     {"id":"W","signal":{"type":"virtual","name":"signal-W"}},
     {"id":"X","signal":{"type":"virtual","name":"signal-X"}},
     {"id":"Y","signal":{"type":"virtual","name":"signal-Y"}},
-    {"id":"Z","signal":{"type":"virtual","name":"signal-Z"}}
+    {"id":"Z","signal":{"type":"virtual","name":"signal-Z"}},
+
+    {"id":"0","signal":{"type":"virtual","name":"signal-0"}},
+    {"id":"1","signal":{"type":"virtual","name":"signal-1"}},
+    {"id":"2","signal":{"type":"virtual","name":"signal-2"}},
+    {"id":"3","signal":{"type":"virtual","name":"signal-3"}},
+    {"id":"4","signal":{"type":"virtual","name":"signal-4"}},
+    {"id":"5","signal":{"type":"virtual","name":"signal-5"}},
+    {"id":"6","signal":{"type":"virtual","name":"signal-6"}},
+    {"id":"7","signal":{"type":"virtual","name":"signal-7"}},
+    {"id":"8","signal":{"type":"virtual","name":"signal-8"}},
+    {"id":"9","signal":{"type":"virtual","name":"signal-9"}},
+
+    {"id":"RED","signal":{"type":"virtual","name":"signal-red"}},
+    {"id":"GREEN","signal":{"type":"virtual","name":"signal-green"}},
+    {"id":"BLUE","signal":{"type":"virtual","name":"signal-blue"}},
+    {"id":"YELLOW","signal":{"type":"virtual","name":"signal-yellow"}},
+    {"id":"PINK","signal":{"type":"virtual","name":"signal-pink"}},
+    {"id":"CYAN","signal":{"type":"virtual","name":"signal-cyan"}},
+    {"id":"WHITE","signal":{"type":"virtual","name":"signal-white"}},
+    {"id":"GREY","signal":{"type":"virtual","name":"signal-grey"}},
+    {"id":"BLACK","signal":{"type":"virtual","name":"signal-black"}},
+
+    {"id":"CHECK","signal":{"type":"virtual","name":"signal-check"}},
+    {"id":"INFO","signal":{"type":"virtual","name":"signal-info"}},
+    {"id":"DOT","signal":{"type":"virtual","name":"signal-dot"}}
 ]

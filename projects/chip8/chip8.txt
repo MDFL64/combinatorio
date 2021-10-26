@@ -1,0 +1,11 @@
+Sub-steps:
+
+
+0   Fetch first byte of instruction.
+1   Fetch second byte of instruction. Many instructions can be completed in this cycle. For those that can't, the full instruction is saved to the IR.
+2+  Used by: draw, bcd, reg_dump, reg_load
+
+
+Minimal instruction set:
+- 1NNN / GOTO
+- 7XNN / ADD NN to RX, DO NOT CHANGE CARRY FLAG
