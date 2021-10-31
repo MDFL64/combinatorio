@@ -136,8 +136,10 @@ impl BinOp {
 
 #[derive(Debug,Clone,Copy,PartialEq)]
 pub enum UnaryOp {
-    Negate,
-    // Do we even want other unary ops? logical not would probably be the most useful, and it could be optimized
+    Negate,     // - compiled as 0-x
+    Plus,       // + compiled as x+0 and used for buffering and fixing constraints
+    NotBitwise, // ~ compiled as x^-1
+    NotLogical, // ! compiled as x==0
 }
 
 #[derive(Debug,Hash,PartialEq,Eq,Clone)]

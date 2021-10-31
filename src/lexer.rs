@@ -39,6 +39,9 @@ pub enum LexToken<'a> {
     OpColon,
     OpQuestion,
 
+    OpNotBitwise,
+    OpNotLogical,
+
     OpParenOpen,
     OpParenClose,
     OpBraceOpen,
@@ -185,6 +188,7 @@ impl<'a> Iterator for Lexer<'a> {
                         '|' => Some(LexToken::OpBitOr),
                         '&' => Some(LexToken::OpBitAnd),
                         '^' => Some(LexToken::OpBitXor),
+                        '~' => Some(LexToken::OpNotBitwise),
 
                         '=' => {
                             let next_char = parse_str.chars().nth(1);
@@ -205,7 +209,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 self.chars.next();
                                 Some(LexToken::OpCmpNeq)
                             } else {
-                                panic!("Unexpected '!' {:?}, logical not is not supported.",next_char);
+                                Some(LexToken::OpNotLogical)
                             }
                         },
 

@@ -32,8 +32,9 @@ mod segments(x: $X) -> ($A,$B,$C,$D,$E,$F,$G) {
 
 // Generates fibonacci numbers, 1 per second.
 // Has separate outputs for 4 digits.
-mod main() {
-    let clk = clock(60);
+mod main(x,y) {
+    output(!x | !y);
+    /*let clk = clock(60);
 
     let current = cell(clk,1,next+0);
     let last = cell(clk,1,current+0);
@@ -41,7 +42,7 @@ mod main() {
     let next = x <= 0 ? 1 : current + last;
 
     let x = current;
-    output(x);
+    output(x);*/
 }
 
 /*

@@ -225,10 +225,6 @@ impl IRModule {
                 self.add_node(IRNode::BinOp(lex,*op,rex), desired_slot)
             },
             Expr::UnOp(op,arg) => {
-                if *op != UnaryOp::Negate {
-                    panic!("unary op nyi");
-                }
-
                 // TODO re-evaluate this:
                 // SPECIAL CASE: Negate constants immediately to deal with possible i32::MIN
                 // Do this REGARDLESS of whether constant folding is enabled.
@@ -240,8 +236,12 @@ impl IRModule {
                 // Try normal constant-folding
                 let ir_arg = self.add_expr(arg, module_table, None);
 
-                // Convert to a subtraction bin-op
-                self.add_node(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg), desired_slot)
+                match &op {
+                    UnaryOp::Negate => self.add_node(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg), desired_slot),
+                    UnaryOp::Plus => self.add_node(IRNode::BinOp(ir_arg,BinOp::Add,IRArg::Constant(0)), desired_slot),
+                    UnaryOp::NotBitwise => self.add_node(IRNode::BinOp(ir_arg,BinOp::BitXor,IRArg::Constant(-1)), desired_slot),
+                    UnaryOp::NotLogical => self.add_node(IRNode::BinOp(ir_arg,BinOp::CmpEq,IRArg::Constant(0)), desired_slot)
+                }
             },
             Expr::If(cond,val_true,val_false) => {
 

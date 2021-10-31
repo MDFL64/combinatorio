@@ -375,9 +375,11 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             parser.take(LexToken::OpParenClose);
             expr
         },
-        LexToken::OpSub => {
-            Expr::UnOp(UnaryOp::Negate, Box::new(parse_expr(parser)))
-        },
+        LexToken::OpAdd => Expr::UnOp(UnaryOp::Plus, Box::new(parse_leaf(parser))),
+        LexToken::OpSub => Expr::UnOp(UnaryOp::Negate, Box::new(parse_leaf(parser))),
+        LexToken::OpNotBitwise => Expr::UnOp(UnaryOp::NotBitwise, Box::new(parse_leaf(parser))),
+        LexToken::OpNotLogical => Expr::UnOp(UnaryOp::NotLogical, Box::new(parse_leaf(parser))),
+
         _ => panic!("Expected expression, found {:?}.",tok)
     }
 }
