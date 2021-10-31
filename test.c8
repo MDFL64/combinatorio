@@ -6,7 +6,7 @@ mod clock(period) {
 
 // A register that stores a single value.
 mod cell(clk,write,val) {
-    let stored = if(clk & write, val, stored);
+    let stored = clk & write ? val : stored;
     output(stored);
 }
 
@@ -32,16 +32,16 @@ mod segments(x: $X) -> ($A,$B,$C,$D,$E,$F,$G) {
 
 // Generates fibonacci numbers, 1 per second.
 // Has separate outputs for 4 digits.
-mod main(enable: $X) -> ($X,$X,$X,$X) {
+mod main() {
     let clk = clock(60);
 
-    let current = cell(clk,1,next+0) * enable;
-    let last = cell(clk,1,current+0) * enable;
+    let current = cell(clk,1,next+0);
+    let last = cell(clk,1,current+0);
 
-    let next = if(x <= 0,1,current + last);
+    let next = x <= 0 ? 1 : current + last;
 
     let x = current;
-    output(x/1000%10, x/100%10, x/10%10, x%10);
+    output(x);
 }
 
 /*

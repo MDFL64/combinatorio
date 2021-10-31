@@ -9,7 +9,6 @@ pub enum LexToken<'a> {
     KeyMod,
     KeyOutput,
     KeyLet,
-    KeyIf,
     KeyMatch,
 
     OpAdd,
@@ -38,6 +37,7 @@ pub enum LexToken<'a> {
     OpMatchArrow,
     OpThinArrow,
     OpColon,
+    OpQuestion,
 
     OpParenOpen,
     OpParenClose,
@@ -51,7 +51,6 @@ impl<'a> LexToken<'a> {
             "mod" => Self::KeyMod,
             "output" => Self::KeyOutput,
             "let" => Self::KeyLet,
-            "if" => Self::KeyIf,
             "match" => Self::KeyMatch,
             _ => Self::Ident(ident)
         }
@@ -236,6 +235,7 @@ impl<'a> Iterator for Lexer<'a> {
                             }
                         },
 
+                        '?' => Some(LexToken::OpQuestion),
                         ':' => Some(LexToken::OpColon),
                         ',' => Some(LexToken::OpComma),
                         ';' => Some(LexToken::OpSemicolon),

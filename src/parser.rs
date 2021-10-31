@@ -27,6 +27,7 @@ pub enum Expr<'a> {
     Constant(i64),
     BinOp(Box<Expr<'a>>,BinOp,Box<Expr<'a>>),
     UnOp(UnaryOp,Box<Expr<'a>>),
+    // Note: Optional false-exprs are deprecated, user must specify 0 instead.
     If(Box<Expr<'a>>,Box<Expr<'a>>,Option<Box<Expr<'a>>>),
     Match(Box<Expr<'a>>,Vec<(Expr<'a>,Expr<'a>)>),
     SubModule(String,Vec<Expr<'a>>)
@@ -211,6 +212,7 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
 
     let mut expr_stack: Vec<Expr> = Vec::new();
     let mut op_stack: Vec<BinOp> = Vec::new();
+    let mut ternary = false;
 
     expr_stack.push(parse_leaf(parser));
 
@@ -239,10 +241,17 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             LexToken::OpCmpLeq => BinOp::CmpLeq,
             LexToken::OpCmpGeq => BinOp::CmpGeq,
 
+            LexToken::OpQuestion => {
+                parser.next();
+                ternary = true;
+                break;
+            },
+
             // sane expression terminators
             LexToken::OpParenClose |
             LexToken::OpBraceClose |
             LexToken::OpSemicolon |
+            LexToken::OpColon |
             LexToken::OpComma |
             LexToken::OpMatchArrow => break,
             _ => panic!("Expected operator, found {:?}",next_tok)
@@ -277,6 +286,15 @@ fn parse_expr<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
     }
 
     assert_eq!(expr_stack.len(),1);
+
+    if ternary {
+        let expr_cond = expr_stack.pop().unwrap();
+        let expr_true = parse_expr(parser);
+        parser.take(LexToken::OpColon);
+        let expr_false = parse_expr(parser);
+        return Expr::If(Box::new(expr_cond),Box::new(expr_true),Some(Box::new(expr_false)));
+    }
+
     expr_stack.pop().unwrap()
 }
 
@@ -304,7 +322,7 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
                 Expr::Ident(id)
             }
         },
-        LexToken::KeyIf => {
+        /*LexToken::KeyIf => {
             parser.take(LexToken::OpParenOpen);
             let cond = parse_expr(parser);
             parser.take(LexToken::OpComma);
@@ -321,7 +339,7 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
             };
 
             Expr::If(Box::new(cond),Box::new(val_true),val_false)
-        },
+        },*/
         LexToken::KeyMatch => {
             parser.take(LexToken::OpParenOpen);
             let in_expr = parse_expr(parser);
