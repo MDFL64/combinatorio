@@ -30,21 +30,29 @@ mod segments(x: $X) -> ($A,$B,$C,$D,$E,$F,$G) {
     output(y&1, y&2, y&4, y&8, y&16, y&32, y&64);
 }
 
-// Generates fibonacci numbers, 1 per second.
-// Has separate outputs for 4 digits.
-mod main(x,y) {
-    let m = -4147483000;
-    output(m);
-    /*let clk = clock(60);
-
-    let current = cell(clk,1,next+0);
-    let last = cell(clk,1,current+0);
-
-    let next = x <= 0 ? 1 : current + last;
-
-    let x = current;
-    output(x);*/
+mod sqrt_step(S,x) {
+    output((S/x + x)/2);
 }
+
+mod main(S) {
+    let clk = clock(10);
+    let val = cell(clk,1,next);
+    let next = sqrt_step(S,val > 0 ? val : 1);
+
+    output(next);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 mod gpu_slice(C_Y,clk,data,y,write,clear) {

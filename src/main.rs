@@ -23,7 +23,7 @@ fn main() {
     // TODO: load relative to executable/build path instead of PWD?
     symbols::load_symbols(Path::new("symbols.json"));
 
-    let source = std::fs::read_to_string("test.c8").expect("failed to read file");
+    let source = std::fs::read_to_string("projects/test.cio").expect("failed to read file");
     let parse_results = crate::parser::parse(&source);
     
     let settings = Rc::new(CompileSettings{
