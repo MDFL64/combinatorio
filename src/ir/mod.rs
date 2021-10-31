@@ -225,15 +225,6 @@ impl IRModule {
                 self.add_node(IRNode::BinOp(lex,*op,rex), desired_slot)
             },
             Expr::UnOp(op,arg) => {
-                // TODO re-evaluate this:
-                // SPECIAL CASE: Negate constants immediately to deal with possible i32::MIN
-                // Do this REGARDLESS of whether constant folding is enabled.
-                /*
-                if let Expr::Constant(const_val) = arg.as_ref() {
-                    return narrow_constant(*const_val);
-                }*/
-
-                // Try normal constant-folding
                 let ir_arg = self.add_expr(arg, module_table, None);
 
                 match &op {
