@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use once_cell::sync::OnceCell;
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 use crate::blueprint::Signal;
 
 struct SymbolInfo {
@@ -17,8 +17,7 @@ struct ParseSymbol{
 
 static SYMBOL_INFO: OnceCell<SymbolInfo> = OnceCell::new();
 
-pub fn load_symbols(filename: &Path) {
-    let json = std::fs::read_to_string(filename).expect("failed to read signals file");
+pub fn load_symbols(json: &str) {
     let symbols: Vec<ParseSymbol> = serde_json::from_str(&json).expect("bad json");
     let mut info = SymbolInfo{signals:Vec::new(),ident_map:HashMap::new()};
     for symbol in symbols {

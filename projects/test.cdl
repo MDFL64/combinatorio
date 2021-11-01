@@ -37,7 +37,7 @@ mod sqrt_step(S,x) {
 mod main(S) {
     let clk = clock(10);
     let val = cell(clk,1,next);
-    let next = sqrt_step(S,val > 0 ? val : 1);
+    let next = sqrt_step(S,val > 0 ? +val : 1);
 
     output(next);
 }
