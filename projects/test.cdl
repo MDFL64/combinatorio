@@ -1,50 +1,38 @@
-// A clock that outputs 1 every n ticks.
-mod clock(period) {
-    let n = n + 1;
-    output((n % period) == 0);
+//use "std/math";
+
+// Iteratively computes the square root of a positive integer.
+// Takes time to run and likely can be optimized.
+mod sqrt(S) {
+    let clk = clock(3); // seems stable
+    let stored = cell(clk,1,next);
+    let x = max(stored,1); // get rid of negative values
+    let next = (S/x + x)/2;
+    output(next);
 }
 
-// A register that stores a single value.
-mod cell(clk,write,val) {
-    let stored = clk & write ? val : stored;
-    output(stored);
+mod main(x) {
+    output(clamp(1,abs(x),10));
 }
 
 // Converts a digit into signals to drive a 7 segment display.
 // Compiled as a separate blueprint.
-mod segments(x: $X) -> ($A,$B,$C,$D,$E,$F,$G) {
+/*mod segments(x: $X) -> ($A,$B,$C,$D,$E,$F,$G) {
 
     let y = match(x) {
         0 => 0b0111111,
-        1 => 6,
-        2 => 91,
-        3 => 79,
-        4 => 102,
-        5 => 109,
-        6 => 125,
+        1 => 0b0000110,
+        2 => 0b1011011,
+        3 => 0b1001111,
+        4 => 0b1100110,
+        5 => 0b1101101,
+        6 => 0b1111101,
         7 => 0b0000111,
         8 => 0b1111111,
-        9 => 111
+        9 => 0b1101111
     };
 
     output(y&1, y&2, y&4, y&8, y&16, y&32, y&64);
-}
-
-mod sqrt_step(S,x) {
-    output((S/x + x)/2);
-}
-
-mod main(S) {
-    let clk = clock(5);
-    let val = cell(clk,1,next);
-    let next = sqrt_step(S,val > 0 ? +val : 1);
-
-    output(next);
-}
-
-
-
-
+}*/
 
 
 

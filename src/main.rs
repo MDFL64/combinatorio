@@ -1,4 +1,4 @@
-use std::{path::Path, rc::Rc};
+use std::{collections::HashMap, path::Path, rc::Rc};
 
 mod common;
 
@@ -25,17 +25,22 @@ fn main() {
     let symbols_json = assets::get_asset_string("symbols.json").expect("failed to load symbol defintions");
     symbols::load_symbols(&symbols_json);
 
-    let source = std::fs::read_to_string("projects/test.cdl").expect("failed to read file");
-    let parse_results = crate::parser::parse(&source);
-    
     let settings = Rc::new(CompileSettings{
         fold_constants: true,
         prune: true,
         main_mod_name
     });
 
+    let mut modules = HashMap::new();
+    {
+        let prelude_source = assets::get_asset_string("std/prelude.cdl").expect("failed to load prelude");
+        let prelude_parsed = crate::parser::parse(&prelude_source);
+        ir::build_ir(prelude_parsed, settings.clone(), &mut modules);
+    };
 
-    let mut modules = ir::build_ir(parse_results, settings.clone());
+    let source = std::fs::read_to_string("projects/test.cdl").expect("failed to read file");
+    let parse_results = crate::parser::parse(&source);
+    ir::build_ir(parse_results, settings.clone(), &mut modules);
 
     if let Some(ir_mod) = modules.get_mut(&settings.main_mod_name) {
         ir_mod.select_colors();

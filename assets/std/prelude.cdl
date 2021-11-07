@@ -1,0 +1,36 @@
+// A clock that outputs 1 every n ticks.
+mod clock(period) {
+    let n = n + 1;
+    output((n % period) == 0);
+}
+
+// A register that stores a single value.
+mod cell(clk,write,val) {
+    let stored = clk & write ? val : stored;
+    output(stored);
+}
+
+// Convert a value to a bool (0 or 1)
+mod bool(x) {
+    output(x != 0);
+}
+
+// Minimum of two values.
+mod min(x,y) {
+    output(x < y ? x : y);
+}
+
+// Maximum of two values.
+mod max(x,y) {
+    output(x > y ? x : y);
+}
+
+// Absolute value.
+mod abs(x) {
+    output(x > 0 ? +x : -x);
+}
+
+// Clamp the middle argument between the first (lower) and last (upper).
+mod clamp(lower,x,upper) {
+    output(min(max(lower,x),upper));
+}

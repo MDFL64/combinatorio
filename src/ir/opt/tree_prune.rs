@@ -71,6 +71,6 @@ impl IRModule {
                 remove_count += 1;
             }
         }
-        println!("Pruned {} nodes.",remove_count);
+        //println!("Pruned {} nodes.",remove_count);
     }
 }

@@ -403,8 +403,7 @@ fn narrow_constant(x: i64) -> i32 {
 
 // Consumes a list of AST modules and returns the IR for the final module.
 // Runs checks on the modules. May panic if an error is encountered.
-pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> HashMap<String,IRModule> {
-    let mut defined: HashMap<String,IRModule> = HashMap::new();
+pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>, defined: &mut HashMap<String,IRModule>) {
 
     for p_mod in parse_mods {
         let mut ir = IRModule::new(p_mod.name.to_owned(), settings.clone());
@@ -444,6 +443,4 @@ pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>) -> HashM
         
         defined.insert(ir.name.clone(), ir);
     }
-
-    defined
 }

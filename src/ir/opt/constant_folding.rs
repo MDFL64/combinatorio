@@ -111,16 +111,24 @@ impl IRModule {
                         }
                     },
                     IRNode::Removed => (),
-                    IRNode::BinOpCmpGate(_lhs,_op,_rhs,_gated) => {
+                    IRNode::BinOpCmpGate(lhs,op,rhs,gated) => {
                         // We still need to fold these expanded nodes because
                         // they can be added by submodules that have already gone
                         // through the opt process
-                        println!("todo fold cmp gate");
+                        
+                        if let IRArg::Constant(const_lhs) = self.fix_const(lhs) {
+                            let result = op.fold(const_lhs,*rhs);
+                            self.nodes[index] = if result != 0 {
+                                self.clone_arg(&gated)
+                            } else {
+                                IRNode::Constant(0)
+                            };
+                        }
                     },
                     _ => panic!("fold {:?}",node)
                 }
             }
-            println!("fold changed {}",changes);
+            //println!("fold changed {}",changes);
             if changes == 0 {
                 break;
             }
