@@ -1,0 +1,45 @@
+
+mod rom(addr) {
+    output(match(addr) {
+        0 => 0x70, 1 => 0x05, // add 5 to R0, no carry
+        2 => 0x10, 3 => 0x00, // goto 000
+    })
+}
+
+mod control_next_pc(instr,step,pc) {
+    output(match(instr>>12) {
+        1 => instr & 0xFFF, // jump
+        7 => pc+2
+    })
+}
+
+mod control_mem_read_addr(instr,step) {
+    output(0);
+}
+
+mod main(reset) {
+    let clk = clock(60);
+
+    let next_step = advance_instr ? 0 : step+1;
+    let step = cell(clk,1,next_step);
+    let pc = cell(clk,advance_instr,next_pc);
+
+    let mem_read_addr = (step <= 1) ? (pc + step) : control_mem_read_addr(instr,step);
+    let read_mem_val = rom(mem_read_addr);
+
+    // Current instruction
+    let ir = cell(clk,1,instr);
+    let instr = match(step) {
+        0 => read_mem_val<<8,
+        1 => ir | read_mem_val,
+        >1 => ir
+    };
+
+    let advance_instr = +step >= 1;
+
+    // blah
+    
+    let next_pc = control_next_pc(instr,step,pc);
+
+    output(instr,step,pc);
+}

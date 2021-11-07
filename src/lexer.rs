@@ -55,7 +55,20 @@ impl<'a> LexToken<'a> {
             "output" => Self::KeyOutput,
             "let" => Self::KeyLet,
             "match" => Self::KeyMatch,
+            "use" | "const" => panic!("'{}' is a keyword reserved for future use.",ident),
             _ => Self::Ident(ident)
+        }
+    }
+
+    pub fn is_compare_op(&self) -> bool {
+        match self {
+            Self::OpCmpEq |
+            Self::OpCmpNeq |
+            Self::OpCmpGt |
+            Self::OpCmpLt |
+            Self::OpCmpGeq |
+            Self::OpCmpLeq => true,
+            _ => false
         }
     }
 }

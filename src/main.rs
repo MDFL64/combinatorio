@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 use clap::{Parser as CmdParser};
 
@@ -47,6 +47,7 @@ fn main() {
     let symbols_json = assets::get_asset_string("symbols.json").expect("failed to load symbol defintions");
     symbols::load_symbols(&symbols_json);
 
+    
     let settings = Rc::new(CompileSettings{
         fold_constants: !(options.no_fold || options.no_opt),
         prune: !(options.no_prune || options.no_opt),
@@ -54,15 +55,20 @@ fn main() {
     });
 
     let mut modules = HashMap::new();
+
+    // Load prelude
     {
         let prelude_source = assets::get_asset_string("std/prelude.cdl").expect("failed to load prelude");
         let prelude_parsed = crate::parser::parse(&prelude_source);
         ir::build_ir(prelude_parsed, settings.clone(), &mut modules);
-    };
+    }
 
-    let source = std::fs::read_to_string(options.filename).expect("failed to read file");
-    let parse_results = crate::parser::parse(&source);
-    ir::build_ir(parse_results, settings.clone(), &mut modules);
+    // Load main source file
+    {
+        let source = std::fs::read_to_string(options.filename).expect("failed to read file");
+        let parse_results = crate::parser::parse(&source);
+        ir::build_ir(parse_results, settings.clone(), &mut modules);
+    }
 
     if let Some(ir_mod) = modules.get_mut(&settings.main_mod_name) {
         ir_mod.select_colors();
@@ -77,13 +83,4 @@ fn main() {
     } else {
         panic!("Main module '{}' not found.",settings.main_mod_name);
     }
-
-    //ir_mod.print();
-
-    //blueprint::read_blueprint("0eNrFkt1qwzAMhd9F1+5o03RtTG92sXcYjGGcRN0EsR38UxaK331yMsagMNab7VKyzuejgy7QDglHTzaCvAB1zgaQzxcI9Gr1UHpxGhEkUEQDAqw2peqxox79qnOmJauj85AFkO3xHeQmvwhAGykSLrS5mJRNpkXPAz9xBIwusNTZ8jvjVpumvtsJmEBudw1/05PHbhmoBbDl6N2gWnzTZ2IAqz6xit/6GRVK90Q+RHW12Zl8TNz5MrVMrB7KSiWQqEs6h3WpzKj9bFPCkRUuxTHdwHxamOPE1pKN6uSdUWSZAfKkh4A5Z3GVV3VrXtt/yytgYfxe9LgE8gex8k3ONyy/nbyAM/owJ1MdNvW+qfbbQ72+r9c5fwCl4xEW");
-
-    /*blueprint::write_blueprint(r#"{
-        "blueprint":{
-            "entities":[{"entity_number":1,"name":"constant-combinator","position":{"x":-239.5,"y":347.5},"direction":4,"control_behavior":{"filters":[{"signal":{"type":"virtual","name":"signal-O"},"count":9,"index":1}]},"connections":{"1":{"red":[{"entity_id":3,"circuit_id":1}]}}},{"entity_number":2,"name":"arithmetic-combinator","position":{"x":-238.5,"y":350},"direction":4,"control_behavior":{"arithmetic_conditions":{"second_constant":0,"operation":"*"}},"connections":{"1":{"green":[{"entity_id":3,"circuit_id":2}]},"2":{"red":[{"entity_id":3,"circuit_id":2}]}}},{"entity_number":3,"name":"arithmetic-combinator","position":{"x":-239.5,"y":350},"direction":4,"control_behavior":{"arithmetic_conditions":{"first_signal":{"type":"virtual","name":"signal-1"},"second_constant":50,"operation":"+","output_signal":{"type":"virtual","name":"signal-O"}}},"connections":{"1":{"red":[{"entity_id":1}]},"2":{"red":[{"entity_id":2,"circuit_id":2}],"green":[{"entity_id":2,"circuit_id":1}]}}}]}}"#)
-*/
 }

@@ -29,7 +29,7 @@ pub enum Expr<'a> {
     UnOp(UnaryOp,Box<Expr<'a>>),
     // Note: Optional false-exprs are deprecated, user must specify 0 instead.
     If(Box<Expr<'a>>,Box<Expr<'a>>,Option<Box<Expr<'a>>>),
-    Match(Box<Expr<'a>>,Vec<(Expr<'a>,Expr<'a>)>),
+    Match(Box<Expr<'a>>,Vec<(BinOp,Expr<'a>,Expr<'a>)>),
     SubModule(String,Vec<Expr<'a>>)
 }
 
@@ -352,11 +352,26 @@ fn parse_leaf<'a>(parser: &mut Parser<'a>) -> Expr<'a> {
                     parser.next();
                     break;
                 }
+
+                let op = if parser.peek().is_compare_op() {
+                    match parser.next() {
+                        LexToken::OpCmpEq => BinOp::CmpEq,
+                        LexToken::OpCmpNeq => BinOp::CmpNeq,
+                        LexToken::OpCmpLt => BinOp::CmpLt,
+                        LexToken::OpCmpGt => BinOp::CmpGt,
+                        LexToken::OpCmpLeq => BinOp::CmpLeq,
+                        LexToken::OpCmpGeq => BinOp::CmpGeq,
+                        _ => panic!()
+                    }
+                } else {
+                    BinOp::CmpEq
+                };
+
                 let test_expr = parse_expr(parser);
                 parser.take(LexToken::OpMatchArrow);
                 let res_expr = parse_expr(parser);
 
-                match_list.push((test_expr,res_expr));
+                match_list.push((op,test_expr,res_expr));
                 
                 let next_token = parser.next();
                 if next_token == LexToken::OpBraceClose {

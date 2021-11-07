@@ -64,11 +64,11 @@ impl IRModule {
             }
         }
 
-        let mut remove_count = 0;
+        let mut _remove_count = 0;
         for i in 0..self.nodes.len() {
             if !saved[i] {
                 self.nodes[i] = IRNode::Removed;
-                remove_count += 1;
+                _remove_count += 1;
             }
         }
         //println!("Pruned {} nodes.",remove_count);

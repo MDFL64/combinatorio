@@ -254,11 +254,11 @@ impl IRModule {
                 let arg_in = self.add_expr(expr_in, module_table,None);
 
                 let mut results = Vec::new();
-                for (expr_test,expr_res) in match_list {
+                for (cmp_op,expr_test,expr_res) in match_list {
                     let arg_test = self.add_expr(expr_test, module_table,None);
                     let arg_res = self.add_expr(expr_res, module_table,None);
 
-                    let compare = self.add_node(IRNode::BinOp(arg_in.clone(),BinOp::CmpEq,arg_test),None);
+                    let compare = self.add_node(IRNode::BinOp(arg_in.clone(),cmp_op.clone(),arg_test),None);
                     results.push(self.add_node(IRNode::Gate(compare,true,arg_res),None));
                 }
 
