@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 use std::convert::TryInto;
 
 use crate::{CompileSettings, common::{BinOp, UnaryOp}};
-use crate::parser::{Module, Statement, Expr};
+use crate::parser::{Expr, Module, ParseItem, Statement};
 
 use self::layout::{Grid, WireLink};
 
@@ -148,7 +148,7 @@ impl IRModule {
         }
     }
 
-    fn add_stmt(&mut self, stmt: &Statement, module_table: &HashMap<String, IRModule>) {
+    fn add_stmt(&mut self, stmt: &Statement, module_table: &HashMap<String, IRModule>, constant_table: &HashMap<String,i64>) {
         if self.outputs_set {
             panic!("Module '{}': No statements may appear after output(...).",self.name);
         }
@@ -160,7 +160,7 @@ impl IRModule {
                     }
                 }
                 for (out_i, expr) in out_exprs.iter().enumerate() {
-                    let out_arg = self.add_expr(expr, module_table, None);
+                    let out_arg = self.add_expr(expr, module_table, constant_table,  None);
                     self.nodes.push(IRNode::Output(out_i as u32, out_arg));
                 }
                 self.port_count += out_exprs.len() as i32;
@@ -176,10 +176,10 @@ impl IRModule {
                 }).collect();
 
                 if out_slots.len() == 1 {
-                    self.add_expr(expr, module_table, Some(out_slots[0]));
+                    self.add_expr(expr, module_table, constant_table, Some(out_slots[0]));
                 } else {
                     if let Expr::SubModule(name,args) = expr {
-                        self.add_submodule(module_table, name,args,Some(&out_slots));
+                        self.add_submodule(module_table, constant_table, name,args,Some(&out_slots));
                     } else {
                         panic!("multi-assignment can only be used with sub-modules");
                     }
@@ -200,7 +200,7 @@ impl IRModule {
         }
     }
 
-    fn add_expr(&mut self, expr: &Expr, module_table: &HashMap<String, IRModule>, desired_slot: Option<u32>) -> IRArg {
+    fn add_expr(&mut self, expr: &Expr, module_table: &HashMap<String, IRModule>, constant_table: &HashMap<String,i64>, desired_slot: Option<u32>) -> IRArg {
         match expr {
             Expr::Ident(name) => {
                 if let Some(arg) = self.bindings.get(*name) {
@@ -210,6 +210,8 @@ impl IRModule {
                         return self.add_node(IRNode::MultiDriver(vec!(arg)),desired_slot);
                     }
                     arg.clone()
+                } else if let Some(num) = constant_table.get(*name) {
+                    return self.add_node(IRNode::Constant(narrow_constant(*num)), desired_slot);
                 } else {
                     panic!("Module '{}': '{}' is not defined.",self.name,name);
                 }
@@ -219,13 +221,13 @@ impl IRModule {
                 self.add_node(IRNode::Constant(num_32), desired_slot)
             },
             Expr::BinOp(lhs,op,rhs) => {
-                let lex = self.add_expr(lhs, module_table, None);
-                let rex = self.add_expr(rhs, module_table, None);
+                let lex = self.add_expr(lhs, module_table, constant_table,  None);
+                let rex = self.add_expr(rhs, module_table, constant_table,  None);
                 
                 self.add_node(IRNode::BinOp(lex,*op,rex), desired_slot)
             },
             Expr::UnOp(op,arg) => {
-                let ir_arg = self.add_expr(arg, module_table, None);
+                let ir_arg = self.add_expr(arg, module_table, constant_table,  None);
 
                 match &op {
                     UnaryOp::Negate => self.add_node(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg), desired_slot),
@@ -236,11 +238,11 @@ impl IRModule {
             },
             Expr::If(cond,val_true,val_false) => {
 
-                let arg_cond = self.add_expr(cond, module_table, None);
-                let arg_true = self.add_expr(val_true, module_table, None);
+                let arg_cond = self.add_expr(cond, module_table, constant_table,  None);
+                let arg_true = self.add_expr(val_true, module_table, constant_table,  None);
 
                 if let Some(val_false) = val_false {
-                    let arg_false = self.add_expr(val_false, module_table, None);
+                    let arg_false = self.add_expr(val_false, module_table, constant_table,  None);
                     
                     let true_result = self.add_node(IRNode::Gate(arg_cond.clone(),true,arg_true),None);
                     let false_result = self.add_node(IRNode::Gate(arg_cond,false,arg_false),None);
@@ -251,12 +253,12 @@ impl IRModule {
                 }
             },
             Expr::Match(expr_in,match_list) => {
-                let arg_in = self.add_expr(expr_in, module_table,None);
+                let arg_in = self.add_expr(expr_in, module_table, constant_table, None);
 
                 let mut results = Vec::new();
                 for (cmp_op,expr_test,expr_res) in match_list {
-                    let arg_test = self.add_expr(expr_test, module_table,None);
-                    let arg_res = self.add_expr(expr_res, module_table,None);
+                    let arg_test = self.add_expr(expr_test, module_table, constant_table, None);
+                    let arg_res = self.add_expr(expr_res, module_table, constant_table, None);
 
                     let compare = self.add_node(IRNode::BinOp(arg_in.clone(),cmp_op.clone(),arg_test),None);
                     results.push(self.add_node(IRNode::Gate(compare,true,arg_res),None));
@@ -265,7 +267,7 @@ impl IRModule {
                 self.add_node(IRNode::MultiDriver(results),desired_slot)
             },
             Expr::SubModule(name,args) => {
-                let args: Vec<_> = args.iter().map(|arg| self.add_expr(arg, module_table, None)).collect();
+                let args: Vec<_> = args.iter().map(|arg| self.add_expr(arg, module_table, constant_table,  None)).collect();
                 if let Some(submod) = module_table.get(name) {
                     let offset = self.nodes.len() as u32;
                     let mut results: Vec<Option<IRArg>> = Vec::new();
@@ -293,11 +295,11 @@ impl IRModule {
         }
     }
 
-    fn add_submodule(&mut self, module_table: &HashMap<String, IRModule>,
+    fn add_submodule(&mut self, module_table: &HashMap<String, IRModule>, constant_table: &HashMap<String, i64>,
         mod_name: &str, inputs: &Vec<Expr>, out_slots: Option<&Vec<u32>>
     ) -> Option<IRArg> {
 
-        let args: Vec<_> = inputs.iter().map(|arg| self.add_expr(arg, module_table, None)).collect();
+        let args: Vec<_> = inputs.iter().map(|arg| self.add_expr(arg, module_table, constant_table, None)).collect();
         if let Some(submod) = module_table.get(mod_name) {
             let offset = self.nodes.len() as u32;
             let mut results: Vec<Option<IRArg>> = Vec::new();
@@ -403,44 +405,59 @@ fn narrow_constant(x: i64) -> i32 {
 
 // Consumes a list of AST modules and returns the IR for the final module.
 // Runs checks on the modules. May panic if an error is encountered.
-pub fn build_ir(parse_mods: Vec<Module>, settings: Rc<CompileSettings>, defined: &mut HashMap<String,IRModule>) {
-
-    for p_mod in parse_mods {
-        let mut ir = IRModule::new(p_mod.name.to_owned(), settings.clone());
-        ir.arg_types = p_mod.arg_types;
-        ir.ret_types = p_mod.ret_types;
-
-        if ir.arg_types.len() != p_mod.arg_names.len() {
-            panic!("The number of args does not match the number of types. This should never happen.");
-        }
-
-        ir.add_args(&p_mod.arg_names);
-
-        for stmt in p_mod.stmts.iter() {
-            ir.add_stmt_bindings(&stmt);
-        }
-
-        for stmt in p_mod.stmts {
-            ir.add_stmt(&stmt, &defined);
-        }
-
-        //ir.check_multi_driver();
-
-        if ir.settings.fold_constants {
-            ir.fold_constants();
-        }
-
-        if ir.settings.prune {
-            ir.prune();
-        }
-
-        ir.fix_nodes();
-
-        // Prune again, gate expansion can leave behind orphan comparators.
-        if ir.settings.prune {
-            ir.prune();
-        }
+pub fn build_ir(
+    parse_mods: Vec<ParseItem>,
+    settings: Rc<CompileSettings>,
+    modules: &mut HashMap<String,IRModule>,
+    constants: &mut HashMap<String,i64>
+) {
+    for p_item in parse_mods {
+        match p_item {
+            ParseItem::Constant(name,num) => {
+                if constants.insert(name.to_owned(), num).is_some() {
+                    panic!("Duplicate constant definition for '{}'.",name);
+                }
+            },
+            ParseItem::Module(p_mod) => {
+                let mut ir = IRModule::new(p_mod.name.to_owned(), settings.clone());
+                ir.arg_types = p_mod.arg_types;
+                ir.ret_types = p_mod.ret_types;
         
-        defined.insert(ir.name.clone(), ir);
+                if ir.arg_types.len() != p_mod.arg_names.len() {
+                    panic!("The number of args does not match the number of types. This should never happen.");
+                }
+        
+                ir.add_args(&p_mod.arg_names);
+        
+                for stmt in p_mod.stmts.iter() {
+                    ir.add_stmt_bindings(&stmt);
+                }
+        
+                for stmt in p_mod.stmts {
+                    ir.add_stmt(&stmt, modules, constants);
+                }
+        
+                //ir.check_multi_driver();
+        
+                if ir.settings.fold_constants {
+                    ir.fold_constants();
+                }
+        
+                if ir.settings.prune {
+                    ir.prune();
+                }
+        
+                ir.fix_nodes();
+        
+                // Prune again, gate expansion can leave behind orphan comparators.
+                if ir.settings.prune {
+                    ir.prune();
+                }
+                
+                if modules.insert(ir.name.clone(), ir).is_some() {
+                    panic!("Duplicate module definition for '{}'.",p_mod.name);
+                }
+            },
+        }
     }
 }

@@ -13,6 +13,11 @@ pub struct Module<'a> {
     pub ret_types: Option<Vec<Option<u32>>>
 }
 
+pub enum ParseItem<'a> {
+    Module(Module<'a>),
+    Constant(&'a str,i64)
+}
+
 #[derive(Debug)]
 pub enum Statement<'a> {
     Terminator,
@@ -89,14 +94,32 @@ impl<'a> Parser<'a> {
     }
 }
 
-pub fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
+pub fn parse<'a>(source: &'a str) -> Vec<ParseItem<'a>> {
 
     let lexer = Lexer::new(source);
     let mut parser = Parser::new(lexer);
 
     // Module declaration
-    let mut modules = Vec::new();
+    let mut results = Vec::new();
     while !parser.is_eof() {
+        if parser.peek() == LexToken::KeyConst {
+            parser.take(LexToken::KeyConst);
+
+            let name = parser.take_ident();
+            parser.take(LexToken::OpAssign);
+            
+            let expr = parse_expr(&mut parser);
+
+            parser.take(LexToken::OpSemicolon);
+
+            if let Expr::Constant(num) = expr {
+                results.push(ParseItem::Constant(name,num));
+            } else {
+                panic!("constants can currently only be literal values, sorry")
+            }
+            continue;
+        }
+
         parser.take(LexToken::KeyMod);
         let mod_name = parser.take_ident();
         let mut mod_args = Vec::new();
@@ -156,16 +179,16 @@ pub fn parse<'a>(source: &'a str) -> Vec<Module<'a>> {
                 _ => mod_stmts.push(stmt)
             }
         }
-        modules.push(Module{
+        results.push(ParseItem::Module(Module{
             name: mod_name,
             arg_names: mod_args,
             stmts: mod_stmts,
             arg_types,
             ret_types
-        });
+        }));
     }
 
-    modules
+    results
 }
 
 fn parse_stmt<'a>(parser: &mut Parser<'a>) -> Statement<'a> {

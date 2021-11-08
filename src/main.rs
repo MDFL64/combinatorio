@@ -55,19 +55,20 @@ fn main() {
     });
 
     let mut modules = HashMap::new();
+    let mut constants = HashMap::new();
 
     // Load prelude
     {
         let prelude_source = assets::get_asset_string("std/prelude.cdl").expect("failed to load prelude");
         let prelude_parsed = crate::parser::parse(&prelude_source);
-        ir::build_ir(prelude_parsed, settings.clone(), &mut modules);
+        ir::build_ir(prelude_parsed, settings.clone(), &mut modules, &mut constants);
     }
 
     // Load main source file
     {
         let source = std::fs::read_to_string(options.filename).expect("failed to read file");
         let parse_results = crate::parser::parse(&source);
-        ir::build_ir(parse_results, settings.clone(), &mut modules);
+        ir::build_ir(parse_results, settings.clone(), &mut modules, &mut constants);
     }
 
     if let Some(ir_mod) = modules.get_mut(&settings.main_mod_name) {

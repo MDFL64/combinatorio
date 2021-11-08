@@ -10,6 +10,10 @@ mod sqrt(S) {
     output(next);
 }
 
+mod main(y) {
+    output(123)
+}
+
 mod main(x) {
     output(clamp(1,abs(x),10));
 }

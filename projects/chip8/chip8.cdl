@@ -74,6 +74,15 @@ mod rom(addr) {
     })
 }
 
+mod decoder(instr,step) {
+    let cv = step < 0 ? 0 : match(instr >> 12) {
+        1 => PC_GOTO | ARG2_IMM_12,
+        7 => WRITE_VX | ALU_ADD | ARG2_IMM_8
+    };
+
+    output(cv);
+}
+
 mod main(reset) {
     let clk = clock(60);
 
@@ -81,7 +90,7 @@ mod main(reset) {
     let step = cell(clk,1,next_step);
     let pc = cell(clk,advance_instr,next_pc);
 
-    let mem_read_addr = (step <= 0) ? (pc + step) : 0; // TODO MEMORY READS
+    let mem_read_addr = (step <= 0) ? (pc + step + 1) : 0; // TODO MEMORY READS
     let mem_read_val = rom(mem_read_addr);
 
     // Current instruction
@@ -92,18 +101,20 @@ mod main(reset) {
         >0 => ir
     };
 
-    let advance_instr = +step >= 1;
+    let advance_instr = (step >= 0) | reset;
 
     // The decoder gives us back a control vector
     let cv = decoder(instr,step);
     
     let pc_inc = pc+2;
-    let next_pc = match(cv & MASK_PC) {
+    let next_pc = reset ? 0 : match(cv & MASK_PC) {
         PC_NEXT => pc_inc,
         PC_GOTO => res,
         PC_COND_SKIP => (res != 0) ? pc+4 : pc_inc,
         PC_POP => 0 // TODO
     };
 
-    output(instr,step,pc);
+    let res = 0; // TODO ALU
+
+    output(instr,cv,step,pc);
 }

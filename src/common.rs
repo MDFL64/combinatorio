@@ -73,6 +73,9 @@ impl BinOp {
             BinOp::Div => lhs.wrapping_div(rhs),
             BinOp::Mod => lhs % rhs,
 
+            BinOp::BitOr => lhs | rhs,
+            BinOp::BitAnd => lhs & rhs,
+
             BinOp::CmpEq => if lhs == rhs { 1 } else { 0 },
             BinOp::CmpNeq => if lhs != rhs { 1 } else { 0 },
             BinOp::CmpLt => if lhs < rhs { 1 } else { 0 },

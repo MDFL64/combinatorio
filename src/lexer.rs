@@ -9,6 +9,7 @@ pub enum LexToken<'a> {
     KeyMod,
     KeyOutput,
     KeyLet,
+    KeyConst,
     KeyMatch,
 
     OpAdd,
@@ -55,7 +56,8 @@ impl<'a> LexToken<'a> {
             "output" => Self::KeyOutput,
             "let" => Self::KeyLet,
             "match" => Self::KeyMatch,
-            "use" | "const" => panic!("'{}' is a keyword reserved for future use.",ident),
+            "const" => Self::KeyConst,
+            "use" => panic!("'{}' is a keyword reserved for future use.",ident),
             _ => Self::Ident(ident)
         }
     }
