@@ -33,7 +33,7 @@ impl IRModule {
 
         while stack.len() > 0 {
             let i = stack.pop().unwrap();
-            let node = &self.nodes[i];
+            let node = self.nodes.get(i);
 
             match node {
                 IRNode::Constant(_) => (),
@@ -67,7 +67,7 @@ impl IRModule {
         let mut _remove_count = 0;
         for i in 0..self.nodes.len() {
             if !saved[i] {
-                self.nodes[i] = IRNode::Removed;
+                self.nodes.set(i,IRNode::Removed,"pruned".to_owned());
                 _remove_count += 1;
             }
         }

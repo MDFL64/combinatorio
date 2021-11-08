@@ -8,25 +8,24 @@ use super::super::{IRModule, IRNode, IRArg};
 impl IRModule {
     pub fn fix_nodes(&mut self) {
         for i in 0..self.nodes.len() {
-            let node = &self.nodes[i];
+            let node = self.nodes.get(i).clone();
             match node {
                 IRNode::BinOp(lhs,op,rhs) => {
                     if lhs.is_link() && lhs == rhs {
                         // 1. fix same-arg binops
-                        self.nodes[i] = IRNode::BinOpSame(lhs.clone(),op.clone());
+                        self.nodes.update(i, IRNode::BinOpSame(lhs.clone(),op.clone()));
                     } else if op.is_compare() {
                         // 2. fix comparisons (lhs cannot be constant)
                         if lhs.is_link() {
                             // fine as-is
                         } else if rhs.is_link() {
-                            self.nodes[i] = IRNode::BinOp(rhs.clone(),op.flip(),lhs.clone());
+                            self.nodes.update(i,IRNode::BinOp(rhs.clone(),op.flip(),lhs.clone()));
                         } else if let IRArg::Constant(n) = lhs {
                             let op = op.clone();
                             let rhs = rhs.clone();
-                            let n = *n;
 
-                            let lhs_const = self.add_node_at(i,IRNode::Constant(n));
-                            self.nodes[i] = IRNode::BinOp(lhs_const,op,rhs);
+                            let lhs_const = self.add_node_at(i,IRNode::Constant(n),format!("const {}",n));
+                            self.nodes.update(i, IRNode::BinOp(lhs_const,op,rhs));
                         }
                     }
                 },
@@ -35,10 +34,10 @@ impl IRModule {
                     let mut args = args.clone();
                     for j in 0..args.len() {
                         if let IRArg::Constant(x) = args[j] {
-                            args[j] = self.add_node_at(i, IRNode::Constant(x))
+                            args[j] = self.add_node_at(i, IRNode::Constant(x),format!("merged md const {}",x))
                         }
                     }
-                    self.nodes[i] = IRNode::MultiDriver(args);
+                    self.nodes.update(i,IRNode::MultiDriver(args));
                 }
                 _ => ()
             }
@@ -46,7 +45,7 @@ impl IRModule {
 
         // 4. expand gates
         for i in 0..self.nodes.len() {
-            let node = &self.nodes[i];
+            let node = self.nodes.get(i);
             match node {
                 IRNode::Gate(cond,check,gated) => {
                     let check = *check;
@@ -54,14 +53,14 @@ impl IRModule {
                     let gated = gated.clone();
 
                     let fixed_gated = if let IRArg::Constant(x) = gated {
-                        self.add_node_at(i, IRNode::Constant(x))
+                        self.add_node_at(i, IRNode::Constant(x),format!("gate const {}",x))
                     } else {
                         gated
                     };
 
                     // If cond is a comparison, we can re-use it.
                     if let IRArg::Link(cond_id,_) = cond {
-                        let cond_node = &self.nodes[cond_id as usize];
+                        let cond_node = self.nodes.get(cond_id as usize);
                         if let IRNode::BinOp(lhs,op,IRArg::Constant(rhs)) = cond_node {
                             assert!(lhs.is_link()); // should always be true (stage 2)
                             if op.is_compare() {
@@ -71,7 +70,7 @@ impl IRModule {
                                 } else {
                                     IRNode::BinOpCmpGate(lhs.clone(), op.invert(), *rhs, fixed_gated)
                                 };
-                                self.nodes[i] = new_node;
+                                self.nodes.update(i, new_node);
 
                                 continue;
                             }
@@ -80,7 +79,7 @@ impl IRModule {
 
                     // LHS and gated must be signals.
                     let fixed_cond = if let IRArg::Constant(x) = cond {
-                        self.add_node_at(i, IRNode::Constant(x))
+                        self.add_node_at(i, IRNode::Constant(x),format!("gate const {}",x))
                     } else {
                         cond
                     };
@@ -90,7 +89,7 @@ impl IRModule {
                     } else {
                         IRNode::BinOpCmpGate(fixed_cond, BinOp::CmpEq, 0, fixed_gated)
                     };
-                    self.nodes[i] = new_node;
+                    self.nodes.update(i, new_node);
                 },
                 _ => ()
             }
@@ -100,7 +99,7 @@ impl IRModule {
         // let a = b;
         // let b = a;
         for i in 0..self.nodes.len() {
-            let node = &self.nodes[i];
+            let node = self.nodes.get(i);
             if let IRNode::MultiDriver(args) = node {
                 for arg in args {
                     if self.detect_short_cycles(i,arg) {
@@ -117,7 +116,7 @@ impl IRModule {
             if target_index == base_index {
                 return true;
             }
-            let node = &self.nodes[target_index];
+            let node = self.nodes.get(target_index);
             if let IRNode::MultiDriver(args) = node {
                 for arg in args {
                     if self.detect_short_cycles(base_index,arg) {
@@ -130,21 +129,21 @@ impl IRModule {
     }
 
     /// IIRC the point of this is to add nodes close to a specific index, to prevent spaghetti
-    fn add_node_at(&mut self, i: usize, node: IRNode) -> IRArg {
+    fn add_node_at(&mut self, i: usize, node: IRNode, name: String) -> IRArg {
         let mut offset = 0;
         while offset >= i && i + offset < self.nodes.len() {
-            if let Some(IRNode::Removed) = self.nodes.get(i + offset) {
-                self.nodes[i + offset] = node;
+            if let Some(IRNode::Removed) = self.nodes.try_get(i + offset) {
+                self.nodes.set(i+offset, node, name);
                 return IRArg::Link((i + offset) as u32,WireColor::None);
             }
             if offset >= i {
-                if let Some(IRNode::Removed) = self.nodes.get(i - offset) {
-                    self.nodes[i - offset] = node;
+                if let Some(IRNode::Removed) = self.nodes.try_get(i - offset) {
+                    self.nodes.set(i-offset, node, name);
                     return IRArg::Link((i - offset) as u32,WireColor::None);
                 }
             }
             offset += 1;
         }
-        self.add_node(node,None)
+        self.add_node(node,name,None)
     }
 }

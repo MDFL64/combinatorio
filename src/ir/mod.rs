@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 use std::convert::TryInto;
 
 use crate::{CompileSettings, common::{BinOp, UnaryOp}};
-use crate::parser::{Expr, Module, ParseItem, Statement};
+use crate::parser::{Expr, ParseItem, Statement};
 
 use self::layout::{Grid, WireLink};
 
@@ -81,12 +81,20 @@ impl NodeList {
         self.nodes.iter()
     }
 
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<IRNode> {
+        self.nodes.iter_mut()
+    }
+
     pub fn iter_debug(&self) -> std::iter::Zip<core::slice::Iter<IRNode>,core::slice::Iter<String>> {
         self.nodes.iter().zip(self.debug_names.iter())
     }
 
     pub fn get(&self, index: usize) -> &IRNode {
         return &self.nodes[index];
+    }
+
+    pub fn try_get(&self, index: usize) -> Option<&IRNode> {
+        return self.nodes.get(index);
     }
 
     pub fn len(&self) -> usize {
@@ -101,6 +109,10 @@ impl NodeList {
     pub fn set(&mut self, index: usize, node: IRNode, name: String) {
         self.nodes[index] = node;
         self.debug_names[index] = name;
+    }
+
+    pub fn update(&mut self, index: usize, node: IRNode) {
+        self.nodes[index] = node;
     }
 }
 
@@ -301,17 +313,18 @@ impl IRModule {
                 self.add_node(IRNode::MultiDriver(results),format!("match-gather"),desired_slot)
             },
             Expr::SubModule(name,args) => {
-                /*let mut out_slots = Vec::new();
+                // This is such a turd, TODO re-evaluate the way add_submodule works
+                let mut out_slots = Vec::new();
                 let mut out_slots_ref = None;
                 if let Some(x) = desired_slot {
                     out_slots.push(x);
                     out_slots_ref = Some(&out_slots);
                 }
-                let out_slots = desired_slot.map(|x| vec!(x));*/
-                assert!(desired_slot.is_none());
 
-                let res = self.add_submodule(module_table, constant_table, name, args, None);
-                res.unwrap() // should never be none
+                let res = self.add_submodule(module_table, constant_table, name, args, out_slots_ref);
+                res.unwrap_or_else(|| IRArg::Link(desired_slot.unwrap(),WireColor::None))
+                
+                // should never be none
                 /*let args: Vec<_> = args.iter().map(|arg| self.add_expr(arg, module_table, constant_table,  None)).collect();
                 if let Some(submod) = module_table.get(name) {
                     let offset = self.nodes.len() as u32;

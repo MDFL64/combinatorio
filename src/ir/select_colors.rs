@@ -39,7 +39,7 @@ impl IRModule {
         let mut out_color_counts: Vec<ColorCounts> = Vec::new();
         out_color_counts.resize(self.nodes.len(), Default::default());
 
-        for node in &mut self.nodes {
+        for node in self.nodes.iter_mut() {
             match node {
                 IRNode::Input(_) => (),
                 IRNode::Constant(_) => (),

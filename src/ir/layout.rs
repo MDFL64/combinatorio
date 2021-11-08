@@ -189,7 +189,7 @@ struct NetRegistry {
 impl NetRegistry {
     fn add_link(&mut self, src_arg: &IRArg, dest_id: u32, module: &IRModule) {
         if let IRArg::Link(src_id,color) = src_arg {            
-            if let IRNode::MultiDriver(args) = &module.nodes[*src_id as usize] {
+            if let IRNode::MultiDriver(args) = module.nodes.get(*src_id as usize) {
                 for arg in args {
                     let fixed_arg = if let IRArg::Link(src_id,_) = arg {
                         IRArg::Link(*src_id, *color)
@@ -430,7 +430,7 @@ impl IRModule {
     }
 
     fn can_move(&self, id: u32) -> bool {
-        match self.nodes[id as usize] {
+        match self.nodes.get(id as usize) {
             IRNode::Input(..) |
             IRNode::Output(..) => false,
             _ => true
