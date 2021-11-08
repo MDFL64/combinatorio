@@ -58,7 +58,6 @@ impl IRModule {
                 },
                 IRNode::MultiDriver(list) => {
                     // all input symbols must match
-                    // TODO it's probably going to work way better to add a MultiEqual constraint that can update everything in one step
                     for arg in list {
                         if let IRArg::Link(arg_in,_) = arg {
                             constraints.push(SymbolConstraint::Equal(*arg_in,out_i as u32));
@@ -109,7 +108,7 @@ impl IRModule {
                         panic!("Conflicting equality and inequality constraints.");
                     }
                     if pinned_symbols[set_a] && pinned_symbols[set_b] {
-                        if self.out_symbols[set_a] != self.out_symbols[set_b] {
+                        if self.out_symbols[set_a] == self.out_symbols[set_b] {
                             panic!("Conflicting inequality and type signature constraints.");
                         }
                     }

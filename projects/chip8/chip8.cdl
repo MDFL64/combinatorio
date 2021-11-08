@@ -83,6 +83,65 @@ mod decoder(instr,step) {
     output(cv);
 }
 
+mod value_registers(x: $X, y: $Y, write: $W, write_val: $R, clk: $DOT) -> ($X,$Y) {
+    let V0 = cell(clk,(x==0) & write,write_val);
+    let V1 = cell(clk,(x==1) & write,write_val);
+    let V2 = cell(clk,(x==2) & write,write_val);
+    let V3 = cell(clk,(x==3) & write,write_val);
+    let V4 = cell(clk,(x==4) & write,write_val);
+    let V5 = cell(clk,(x==5) & write,write_val);
+    let V6 = cell(clk,(x==6) & write,write_val);
+    let V7 = cell(clk,(x==7) & write,write_val);
+    let V8 = cell(clk,(x==8) & write,write_val);
+    let V9 = cell(clk,(x==9) & write,write_val);
+    let VA = cell(clk,(x==10) & write,write_val);
+    let VB = cell(clk,(x==11) & write,write_val);
+    let VC = cell(clk,(x==12) & write,write_val);
+    let VD = cell(clk,(x==13) & write,write_val);
+    let VE = cell(clk,(x==14) & write,write_val);
+    let VF = cell(clk,(x==15) & write,write_val); // TODO specialized write to carry flag
+
+    let res_x = match(x) {
+        0 => V0,
+        1 => V1,
+        2 => V2,
+        3 => V3,
+        4 => V4,
+        5 => V5,
+        6 => V6,
+        7 => V7,
+        8 => V8,
+        9 => V9,
+        10 => VA,
+        11 => VB,
+        12 => VC,
+        13 => VD,
+        14 => VE,
+        15 => VF
+    };
+
+    let res_y = match(y) {
+        0 => V0,
+        1 => V1,
+        2 => V2,
+        3 => V3,
+        4 => V4,
+        5 => V5,
+        6 => V6,
+        7 => V7,
+        8 => V8,
+        9 => V9,
+        10 => VA,
+        11 => VB,
+        12 => VC,
+        13 => VD,
+        14 => VE,
+        15 => VF
+    };
+
+    output(res_x,res_y);
+}
+
 mod main(reset) {
     let clk = clock(60);
 
@@ -114,7 +173,10 @@ mod main(reset) {
         PC_POP => 0 // TODO
     };
 
-    let res = 0; // TODO ALU
+    let write_to_v = 0;
+    let (vx,vy) = value_registers(1,1,write_to_v,1,clk);
+
+    let res = +(+vx + +vy); // TODO ALU
 
     output(instr,cv,step,pc);
 }
