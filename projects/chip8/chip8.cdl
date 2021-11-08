@@ -1,3 +1,71 @@
+const MASK_ALU = 0xF;
+    const ALU_ARG2  = 0x0;
+    const ALU_OR    = 0x1;
+    const ALU_AND   = 0x2;
+    const ALU_XOR   = 0x3;
+    const ALU_ADD   = 0x4;
+    const ALU_SUB   = 0x5;
+    const ALU_UP    = 0x6; // shift X up by 1
+    const ALU_SUB2  = 0x7; // Y - X
+    const ALU_EQ    = 0x8; // Not masked from 8XY* instruction
+    const ALU_NEQ   = 0x9; // Not masked from 8XY* instruction
+    const ALU_SPITE_ADDR = 0xA; // Not masked from 8XY* instruction
+    const ALU_ARG1  = 0xB; // Not masked from 8XY* instruction
+    const ALU_DOWN  = 0xE; // shift X down by 1
+
+const MASK_PC = 0xF0;
+    const PC_NEXT           = 0x00; // pc + 2
+    const PC_GOTO           = 0x10; // res
+    const PC_COND_SKIP      = 0x20; // res ? pc+4 : pc+2
+    const PC_POP            = 0x30; // stack pop
+
+const MASK_ARG1 = 0xF00;
+    const ARG1_VX   = 0x000;
+    const ARG1_RAND = 0x100;
+    const ARG1_V0   = 0x200;
+
+const MASK_ARG2 = 0xF000;
+    const ARG2_VY           = 0x0000;
+    const ARG2_IMM_8        = 0x1000;
+    const ARG2_IMM_12       = 0x2000;
+    const ARG2_KEY          = 0x3000;
+    const ARG2_DELAY        = 0x4000;
+    const ARG2_I            = 0x5000;
+
+const MASK_WRITE = 0xF0000;
+    const WRITE_VX      = 0x10000;
+    const WRITE_I       = 0x20000;
+    const WRITE_DELAY   = 0x30000;
+    const WRITE_SOUND   = 0x40000;
+    const WRITE_PUSH    = 0x50000; // write pc(+2?) to stack, sp++
+    const WRITE_POP     = 0x60000; // sp--
+
+// ---- 00E0 = TODO clear screen
+// 00EE = PC_POP | WRITE_POP
+// 1NNN = PC_GOTO | ARG2_IMM_12
+// 2NNN = PC_GOTO | ARG2_IMM_12 | WRITE_PUSH
+// 3XNN = ALU_EQ | ARG2_IMM_8 | PC_COND_SKIP
+// 4XNN = ALU_NEQ | ARG2_IMM_8 | PC_COND_SKIP
+// 5XY0 = ALU_EQ | PC_COND_SKIP
+// 6XNN = WRITE_VX | ARG2_IMM_8
+// 7XNN = WRITE_VX | ALU_ADD | ARG2_IMM_8
+// 8XYN = WRITE_VX | (instr & 0xF)
+// 9XY0 = ALU_NEQ | PC_COND_SKIP
+// ANNN = WRITE_I | ARG2_IMM_12
+// BNNN = PC_GOTO | ALU_ADD | ARG1_V0 | ARG2_IMM_12
+// CXNN = WRITE_VX | ALU_AND | ARG1_RAND | ARG2_IMM_8
+// ---- DXYN = TODO draw sprite
+// EX9E = ALU_EQ | PC_COND_SKIP | ARG2_KEY
+// EXA1 = ALU_NEQ | PC_COND_SKIP | ARG2_KEY
+// FX07 = WRITE_VX | ARG2_DELAY
+// ---- FX0A = WRITE_VX | ARG2_KEY // TODO BLOCKS
+// FX15 = WRITE_DELAY | ALU_ARG1
+// FX18 = WRITE_SOUND | ALU_ARG1
+// FX1E = WRITE_I | ALU_ADD | ARG2_I;
+// FX29 = WRITE_I | ALU_SPRITE_ADDR
+// ---- FX33 = TODO BCD
+// ---- FX55 = TODO REG DUMP
+// ---- FX65 = TODO REG LOAD
 
 mod rom(addr) {
     output(match(addr) {
@@ -6,40 +74,36 @@ mod rom(addr) {
     })
 }
 
-mod control_next_pc(instr,step,pc) {
-    output(match(instr>>12) {
-        1 => instr & 0xFFF, // jump
-        7 => pc+2
-    })
-}
-
-mod control_mem_read_addr(instr,step) {
-    output(0);
-}
-
 mod main(reset) {
     let clk = clock(60);
 
-    let next_step = advance_instr ? 0 : step+1;
+    let next_step = advance_instr ? -1 : step+1;
     let step = cell(clk,1,next_step);
     let pc = cell(clk,advance_instr,next_pc);
 
-    let mem_read_addr = (step <= 1) ? (pc + step) : control_mem_read_addr(instr,step);
-    let read_mem_val = rom(mem_read_addr);
+    let mem_read_addr = (step <= 0) ? (pc + step) : 0; // TODO MEMORY READS
+    let mem_read_val = rom(mem_read_addr);
 
     // Current instruction
     let ir = cell(clk,1,instr);
     let instr = match(step) {
-        0 => read_mem_val<<8,
-        1 => ir | read_mem_val,
-        >1 => ir
+        -1 => mem_read_val<<8,
+        0 => ir | mem_read_val,
+        >0 => ir
     };
 
     let advance_instr = +step >= 1;
 
-    // blah
+    // The decoder gives us back a control vector
+    let cv = decoder(instr,step);
     
-    let next_pc = control_next_pc(instr,step,pc);
+    let pc_inc = pc+2;
+    let next_pc = match(cv & MASK_PC) {
+        PC_NEXT => pc_inc,
+        PC_GOTO => res,
+        PC_COND_SKIP => (res != 0) ? pc+4 : pc_inc,
+        PC_POP => 0 // TODO
+    };
 
     output(instr,step,pc);
 }

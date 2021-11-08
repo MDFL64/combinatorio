@@ -5,6 +5,39 @@ Sub-steps:
 1   Fetch second byte of instruction. Many instructions can be completed in this cycle. For those that can't, the full instruction is saved to the IR.
 2+  Used by: draw, bcd, reg_dump, reg_load
 
+PC: 3 bits
+
+const MASK_PC = 7;
+PC_NEXT     0 pc+2
+PC_GOTO     1 instr & 0xFFF
+PC_COND     2 res ? pc+4 : pc+2
+PC_POP      3 stack pop
+PC_GODYN    4 (instr & 0xFFF) + reg
+
+const ARG1_REG
+const ARG1_RAND
+
+// determines if we're loading ALU arg 2 from the instruction (__NN) or from the register (__Y_).
+const ARG2_REG
+const ARG2_IMMEDIATE
+const ARG2_KEY
+
+// ALU op
+ALU_NOP     0
+ALU_OR      1
+ALU_AND     2
+ALU_XOR     3
+ALU_ADD     4
+ALU_SUB     5
+ALU_UP      6 // shift X up by 1
+ALU_SUB2    7 // subtract in reverse order
+
+ALU_EQ      8
+ALU_NEQ     9
+
+ALU_DOWN    14 // shift X down by 1
+
+
 
 Minimal instruction set:
 - 1NNN / GOTO
