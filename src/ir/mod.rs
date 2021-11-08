@@ -93,6 +93,10 @@ impl NodeList {
         return &self.nodes[index];
     }
 
+    pub fn get_debug(&self, index: usize) -> &str {
+        return &self.debug_names[index];
+    }
+
     pub fn try_get(&self, index: usize) -> Option<&IRNode> {
         return self.nodes.get(index);
     }
@@ -247,39 +251,40 @@ impl IRModule {
     }
 
     fn add_expr(&mut self, expr: &Expr, module_table: &HashMap<String, IRModule>, constant_table: &HashMap<String,i64>, desired_slot: Option<u32>) -> IRArg {
+        let expr_string = format!("{:?}",expr);
         match expr {
             Expr::Ident(name) => {
                 if let Some(arg) = self.bindings.get(*name) {
                     if desired_slot.is_some() {
                         // hack to make assignments work properly
                         let arg = arg.clone();
-                        return self.add_node(IRNode::MultiDriver(vec!(arg)),format!("clone of {}",name),desired_slot);
+                        return self.add_node(IRNode::MultiDriver(vec!(arg)),expr_string,desired_slot);
                     }
                     arg.clone()
                 } else if let Some(num) = constant_table.get(*name) {
-                    return self.add_node(IRNode::Constant(narrow_constant(*num)), format!("const {}",name), desired_slot);
+                    return self.add_node(IRNode::Constant(narrow_constant(*num)), expr_string, desired_slot);
                 } else {
                     panic!("Module '{}': '{}' is not defined.",self.name,name);
                 }
             },
             Expr::Constant(num) => {
                 let num_32 = narrow_constant(*num);
-                self.add_node(IRNode::Constant(num_32), format!("const {}",num), desired_slot)
+                self.add_node(IRNode::Constant(num_32), expr_string, desired_slot)
             },
             Expr::BinOp(lhs,op,rhs) => {
                 let lex = self.add_expr(lhs, module_table, constant_table,  None);
                 let rex = self.add_expr(rhs, module_table, constant_table,  None);
                 
-                self.add_node(IRNode::BinOp(lex,*op,rex), format!("binop"), desired_slot)
+                self.add_node(IRNode::BinOp(lex,*op,rex), expr_string, desired_slot)
             },
             Expr::UnOp(op,arg) => {
                 let ir_arg = self.add_expr(arg, module_table, constant_table,  None);
 
                 match &op {
-                    UnaryOp::Negate => self.add_node(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg),format!("unop"), desired_slot),
-                    UnaryOp::Plus => self.add_node(IRNode::BinOp(ir_arg,BinOp::Add,IRArg::Constant(0)), format!("unop"), desired_slot),
-                    UnaryOp::NotBitwise => self.add_node(IRNode::BinOp(ir_arg,BinOp::BitXor,IRArg::Constant(-1)), format!("unop"), desired_slot),
-                    UnaryOp::NotLogical => self.add_node(IRNode::BinOp(ir_arg,BinOp::CmpEq,IRArg::Constant(0)), format!("unop"), desired_slot)
+                    UnaryOp::Negate => self.add_node(IRNode::BinOp(IRArg::Constant(0),BinOp::Sub,ir_arg),expr_string, desired_slot),
+                    UnaryOp::Plus => self.add_node(IRNode::BinOp(ir_arg,BinOp::Add,IRArg::Constant(0)), expr_string, desired_slot),
+                    UnaryOp::NotBitwise => self.add_node(IRNode::BinOp(ir_arg,BinOp::BitXor,IRArg::Constant(-1)), expr_string, desired_slot),
+                    UnaryOp::NotLogical => self.add_node(IRNode::BinOp(ir_arg,BinOp::CmpEq,IRArg::Constant(0)), expr_string, desired_slot)
                 }
             },
             Expr::If(cond,val_true,val_false) => {

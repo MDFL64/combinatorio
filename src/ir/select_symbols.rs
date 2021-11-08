@@ -105,6 +105,9 @@ impl IRModule {
                     let set_a = equal_sets.get(*a as usize);
                     let set_b = equal_sets.get(*b as usize);
                     if set_a == set_b {
+                        let dbg_a = self.nodes.get_debug(*a as usize);
+                        let dbg_b = self.nodes.get_debug(*b as usize);
+                        println!("First: ({}) != ({})",dbg_a,dbg_b);
                         panic!("Conflicting equality and inequality constraints.");
                     }
                     if pinned_symbols[set_a] && pinned_symbols[set_b] {

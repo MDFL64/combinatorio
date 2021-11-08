@@ -139,7 +139,7 @@ mod value_registers(x: $X, y: $Y, write: $W, write_val: $R, clk: $DOT) -> ($X,$Y
         15 => VF
     };
 
-    output(res_x,res_y);
+    output(+res_x,+res_y);
 }
 
 mod main(reset) {
@@ -168,15 +168,17 @@ mod main(reset) {
     let pc_inc = pc+2;
     let next_pc = reset ? 0 : match(cv & MASK_PC) {
         PC_NEXT => pc_inc,
-        PC_GOTO => res,
+        PC_GOTO => +res,
         PC_COND_SKIP => (res != 0) ? pc+4 : pc_inc,
         PC_POP => 0 // TODO
     };
 
     let write_to_v = 0;
-    let (vx,vy) = value_registers(1,1,write_to_v,1,clk);
+    let x = (instr >> 8) & 0xF;
+    let y = (instr >> 4) & 0xF;
+    let (vx,vy) = value_registers(x,y,write_to_v,res,clk);
 
-    let res = +(+vx + +vy); // TODO ALU
+    let res = vx + vy; // TODO ALU
 
     output(instr,cv,step,pc);
 }
