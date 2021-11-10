@@ -69,37 +69,46 @@ const MASK_WRITE = 0xF0000;
 
 mod rom(addr) {
     output(match(addr) {
-        0 => 0x70, 1 => 0x05, // add 5 to R0, no carry
-        2 => 0x10, 3 => 0x00, // goto 000
+        0 => 0x60, 1 => 0x00, // V0 = 0
+        2 => 0x61, 3 => 0x01, // V1 = 1
+
+        4 => 0x83, 5 => 0x00, // V3 = V0
+        6 => 0x83, 7 => 0x14, // V3 = V3 + V1
+        8 => 0x80, 9 => 0x10, // V0 = V1
+        10 => 0x81, 11 => 0x30, // V1 = V3
+        12 => 0x10, 13 => 0x04, // goto 004
     })
 }
 
 mod decoder(instr,step) {
     let cv = step < 0 ? 0 : match(instr >> 12) {
         1 => PC_GOTO | ARG2_IMM_12,
-        7 => WRITE_VX | ALU_ADD | ARG2_IMM_8
+        6 => WRITE_VX | ARG2_IMM_8,
+        7 => WRITE_VX | ALU_ADD | ARG2_IMM_8,
+        8 => WRITE_VX | (instr & 0xF)
     };
 
     output(cv);
 }
 
-mod value_registers(x: $X, y: $Y, write: $W, write_val: $R, clk: $DOT) -> ($X,$Y) {
-    let V0 = cell(clk,(x==0) & write,write_val);
-    let V1 = cell(clk,(x==1) & write,write_val);
-    let V2 = cell(clk,(x==2) & write,write_val);
-    let V3 = cell(clk,(x==3) & write,write_val);
-    let V4 = cell(clk,(x==4) & write,write_val);
-    let V5 = cell(clk,(x==5) & write,write_val);
-    let V6 = cell(clk,(x==6) & write,write_val);
-    let V7 = cell(clk,(x==7) & write,write_val);
-    let V8 = cell(clk,(x==8) & write,write_val);
-    let V9 = cell(clk,(x==9) & write,write_val);
-    let VA = cell(clk,(x==10) & write,write_val);
-    let VB = cell(clk,(x==11) & write,write_val);
-    let VC = cell(clk,(x==12) & write,write_val);
-    let VD = cell(clk,(x==13) & write,write_val);
-    let VE = cell(clk,(x==14) & write,write_val);
-    let VF = cell(clk,(x==15) & write,write_val); // TODO specialized write to carry flag
+mod value_registers(x, y, write, write_val, clk) {
+    let write_val_byte = write_val & 0xFF;
+    let V0 = cell(clk,(x==0) & write,write_val_byte);
+    let V1 = cell(clk,(x==1) & write,write_val_byte);
+    let V2 = cell(clk,(x==2) & write,write_val_byte);
+    let V3 = cell(clk,(x==3) & write,write_val_byte);
+    let V4 = cell(clk,(x==4) & write,write_val_byte);
+    let V5 = cell(clk,(x==5) & write,write_val_byte);
+    let V6 = cell(clk,(x==6) & write,write_val_byte);
+    let V7 = cell(clk,(x==7) & write,write_val_byte);
+    let V8 = cell(clk,(x==8) & write,write_val_byte);
+    let V9 = cell(clk,(x==9) & write,write_val_byte);
+    let VA = cell(clk,(x==10) & write,write_val_byte);
+    let VB = cell(clk,(x==11) & write,write_val_byte);
+    let VC = cell(clk,(x==12) & write,write_val_byte);
+    let VD = cell(clk,(x==13) & write,write_val_byte);
+    let VE = cell(clk,(x==14) & write,write_val_byte);
+    let VF = cell(clk,(x==15) & write,write_val_byte); // TODO specialized write to carry flag
 
     let res_x = match(x) {
         0 => V0,
@@ -139,11 +148,11 @@ mod value_registers(x: $X, y: $Y, write: $W, write_val: $R, clk: $DOT) -> ($X,$Y
         15 => VF
     };
 
-    output(+res_x,+res_y);
+    output(+res_x,+res_y,V0);
 }
 
 mod main(reset) {
-    let clk = clock(60);
+    let clk = clock(30);
 
     let next_step = advance_instr ? -1 : step+1;
     let step = cell(clk,1,next_step);
@@ -173,12 +182,24 @@ mod main(reset) {
         PC_POP => 0 // TODO
     };
 
-    let write_to_v = 0;
+    let write_select = cv & MASK_WRITE;
+    let write_to_vx = write_select == WRITE_VX;
     let x = (instr >> 8) & 0xF;
     let y = (instr >> 4) & 0xF;
-    let (vx,vy) = value_registers(x,y,write_to_v,res,clk);
+    let (vx,vy,v0) = value_registers(x,y,write_to_vx,res,clk);
 
-    let res = vx + vy; // TODO ALU
+    let arg1 = vx;
 
-    output(instr,cv,step,pc);
+    let arg2 = match(cv & MASK_ARG2) {
+        ARG2_VY => vy,
+        ARG2_IMM_8 => instr & 0xFF,
+        ARG2_IMM_12 => instr & 0xFFF
+    };
+
+    let res = match(cv & MASK_ALU) {
+        ALU_ARG2 => arg2,
+        ALU_ADD => arg1 + arg2,
+    };
+
+    output(pc,v0);
 }
