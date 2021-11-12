@@ -81,20 +81,16 @@ impl WireNet {
             (x,y)
         }
 
-        // Determine midpoint.
-        let mut x_sum = 0.0;
-        let mut y_sum = 0.0;
+        let mut rng = rand::thread_rng();
+        
+        // Picking a random node to move toward is less prone to get stuck than picking the midpoint.
+        let mut positions = Vec::new();
         for (id,_) in &self.connections {
             let pos = module.grid.get_pos_for(*id).unwrap();
-            x_sum += pos.0 as f32;
-            y_sum += pos.1 as f32;
+            positions.push(pos);
         }
-        let mid_pos = (
-            (x_sum / self.connections.len() as f32).round() as i32,
-            (y_sum / self.connections.len() as f32).round() as i32
-        );
+        let mid_pos = positions[rng.gen_range(0..positions.len())];
 
-        let mut rng = rand::thread_rng();
 
         // Get better positions.
         for (id,_) in &self.connections {

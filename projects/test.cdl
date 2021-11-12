@@ -47,27 +47,7 @@ mod main(x) {
 
 
 /*
-mod gpu_slice(C_Y,clk,data,y,write,clear) {
-    let row_selected = C_Y == y;
-    let $stored = 0;
-    let new_val = stored ^ data;
-    let $stored = cell(clk,write & row_selected,new_val);
-    let collision = if(row_selected, new_val < stored, 0);
-    output(stored); // new_val < stored
-}
 
-mod main(data,x,y,write,clear) {
-    let clk = clock(30);
-
-    let write_low = write & (x < 32);
-    let data_low = data << x;
-
-    let r0 = gpu_slice(0,    clk,data_low,y,write_low,clear);
-    let r1 = gpu_slice(1,    clk,data_low,y,write_low,clear);
-    let r2 = gpu_slice(2,    clk,data_low,y,write_low,clear);
-    let r3 = gpu_slice(3,    clk,data_low,y,write_low,clear);
-    output(r0,r1,r2,r3);
-}
 
 /*mod meme(x) {
     output(
