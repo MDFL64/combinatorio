@@ -39,6 +39,9 @@ const MASK_WRITE = 0xF0000;
     const WRITE_SOUND   = 0x40000;
     const WRITE_PUSH    = 0x50000; // write pc(+2?) to stack, sp++
     const WRITE_POP     = 0x60000; // sp--
+    const WRITE_SCREEN  = 0x70000;
+
+const FLAG_STAY = 0x100000;
 
 // ---- 00E0 = TODO clear screen
 // 00EE = PC_POP | WRITE_POP
@@ -69,6 +72,7 @@ const MASK_WRITE = 0xF0000;
 
 
 // Fibonacci
+/*
 mod rom(addr) {
     output(match(addr) {
         0 => 0x60, 1 => 0x00, // V0 = 0
@@ -80,28 +84,30 @@ mod rom(addr) {
         10 => 0x81, 11 => 0x30, // V1 = V3
         12 => 0x10, 13 => 0x04, // goto 004
     })
-}
+}*/
 
-/*
 mod rom(addr) {
     output(match(addr) {
-        0 => 0xA0, 1 => 0x10, // I = 010
-        2 => 0x60, 3 => 0x03, // V0 = 0
-        4 => 0x61, 5 => 0x03, // V1 = 1
+        0 => 0xA0, 1 => 0x0A, // I = 010
+        2 => 0x60, 3 => 0x03, // V0 = 3
+        4 => 0x61, 5 => 0x03, // V1 = 3
         6 => 0xD0, 7 => 0x11, // Draw @ (V0,V1)
         8 => 0x10, 9 => 0x00, // goto 000
         10 => 0b10101010      // sprite
     });
 }
-*/
 
 mod decoder(instr,step) {
-    let cv = step < 0 ? 0 : match(instr >> 12) {
+    let cv = step < 1 ? FLAG_STAY : match(instr >> 12) {
         1 => PC_GOTO | ARG2_IMM_12,
         6 => WRITE_VX | ARG2_IMM_8,
         7 => WRITE_VX | ALU_ADD | ARG2_IMM_8,
         8 => WRITE_VX | (instr & 0xF),
-        0xA => WRITE_I | ALU_ARG2 | ARG2_IMM_12
+        0xA => WRITE_I | ALU_ARG2 | ARG2_IMM_12,
+        0xD => match(step) {
+            1 => FLAG_STAY,
+            2 => WRITE_SCREEN
+        }
     };
 
     output(cv);
@@ -167,29 +173,30 @@ mod value_registers(x, y, write, write_val, clk) {
     output(+res_x,+res_y,V0);
 }
 
-mod main(reset) {
+mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C,      $A,$A) {
     let clk = clock(30);
 
-    let next_step = advance_instr ? -1 : step+1;
+    let next_step = advance_instr ? 0 : step+1;
     let step = cell(clk,1,next_step);
     let pc = cell(clk,advance_instr,next_pc);
     let I = cell(clk,write_to_i,res & 0xFFF);
 
-    let mem_read_addr = (step <= 0) ? (pc + step + 1) : 0; // TODO MEMORY READS
+    let mem_read_addr = (step <= 1) ? (pc + step) : (I + step - 2);
     let mem_read_val = rom(mem_read_addr);
 
     // Current instruction
     let ir = cell(clk,1,instr);
     let instr = match(step) {
-        -1 => mem_read_val<<8,
-        0 => ir | mem_read_val,
-        >0 => ir
+        0 => mem_read_val<<8,
+        1 => ir | mem_read_val,
+        >1 => ir
     };
 
-    let advance_instr = (step >= 0) | reset;
 
     // The decoder gives us back a control vector
     let cv = decoder(instr,step);
+
+    let advance_instr = !(cv & FLAG_STAY) | reset;
     
     let pc_inc = pc+2;
     let next_pc = reset ? 0 : match(cv & MASK_PC) {
@@ -202,6 +209,7 @@ mod main(reset) {
     let write_select = cv & MASK_WRITE;
     let write_to_vx = write_select == WRITE_VX;
     let write_to_i = write_select == WRITE_I;
+    let write_to_screen = write_select == WRITE_SCREEN;
 
     let x = (instr >> 8) & 0xF;
     let y = (instr >> 4) & 0xF;
@@ -220,5 +228,7 @@ mod main(reset) {
         ALU_ADD => arg1 + arg2,
     };
 
-    output(pc,v0,I);
+    //output(pc,v0,I);
+    let should_clear = 0;
+    output(clk,vx,vy,mem_read_val,write_to_screen,should_clear,     +step,+mem_read_addr)
 }
