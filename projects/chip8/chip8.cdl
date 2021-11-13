@@ -67,6 +67,8 @@ const MASK_WRITE = 0xF0000;
 // ---- FX55 = TODO REG DUMP
 // ---- FX65 = TODO REG LOAD
 
+
+// Fibonacci
 mod rom(addr) {
     output(match(addr) {
         0 => 0x60, 1 => 0x00, // V0 = 0
@@ -80,12 +82,26 @@ mod rom(addr) {
     })
 }
 
+/*
+mod rom(addr) {
+    output(match(addr) {
+        0 => 0xA0, 1 => 0x10, // I = 010
+        2 => 0x60, 3 => 0x03, // V0 = 0
+        4 => 0x61, 5 => 0x03, // V1 = 1
+        6 => 0xD0, 7 => 0x11, // Draw @ (V0,V1)
+        8 => 0x10, 9 => 0x00, // goto 000
+        10 => 0b10101010      // sprite
+    });
+}
+*/
+
 mod decoder(instr,step) {
     let cv = step < 0 ? 0 : match(instr >> 12) {
         1 => PC_GOTO | ARG2_IMM_12,
         6 => WRITE_VX | ARG2_IMM_8,
         7 => WRITE_VX | ALU_ADD | ARG2_IMM_8,
-        8 => WRITE_VX | (instr & 0xF)
+        8 => WRITE_VX | (instr & 0xF),
+        0xA => WRITE_I | ALU_ARG2 | ARG2_IMM_12
     };
 
     output(cv);
@@ -157,6 +173,7 @@ mod main(reset) {
     let next_step = advance_instr ? -1 : step+1;
     let step = cell(clk,1,next_step);
     let pc = cell(clk,advance_instr,next_pc);
+    let I = cell(clk,write_to_i,res & 0xFFF);
 
     let mem_read_addr = (step <= 0) ? (pc + step + 1) : 0; // TODO MEMORY READS
     let mem_read_val = rom(mem_read_addr);
@@ -184,6 +201,8 @@ mod main(reset) {
 
     let write_select = cv & MASK_WRITE;
     let write_to_vx = write_select == WRITE_VX;
+    let write_to_i = write_select == WRITE_I;
+
     let x = (instr >> 8) & 0xF;
     let y = (instr >> 4) & 0xF;
     let (vx,vy,v0) = value_registers(x,y,write_to_vx,res,clk);
@@ -201,5 +220,5 @@ mod main(reset) {
         ALU_ADD => arg1 + arg2,
     };
 
-    output(pc,v0);
+    output(pc,v0,I);
 }
