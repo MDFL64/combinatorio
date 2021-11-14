@@ -89,25 +89,33 @@ mod rom(addr) {
 mod rom(addr) {
     output(match(addr) {
         0 => 0xA0, 1 => 0x0A, // I = 010
-        2 => 0x60, 3 => 0x03, // V0 = 3
-        4 => 0x61, 5 => 0x03, // V1 = 3
-        6 => 0xD0, 7 => 0x11, // Draw @ (V0,V1)
+        2 => 0x60, 3 => 0x08, // V0 = 3
+        4 => 0x61, 5 => 0x00, // V1 = 3
+        6 => 0xD0, 7 => 0x18, // Draw @ (V0,V1)
         8 => 0x10, 9 => 0x00, // goto 000
-        10 => 0b10101010      // sprite
+        10 => 0x7e,     // sprite
+        11 => 0x81,     // sprite
+        12 => 0xa5,     // sprite
+        13 => 0xa5,     // sprite
+        14 => 0x81,     // sprite
+        15 => 0xbd,     // sprite
+        16 => 0x81,     // sprite
+        17 => 0x7e,     // sprite
     });
 }
 
 mod decoder(instr,step) {
+    let count = instr & 0xF;
     let cv = step < 1 ? FLAG_STAY : match(instr >> 12) {
         1 => PC_GOTO | ARG2_IMM_12,
         6 => WRITE_VX | ARG2_IMM_8,
         7 => WRITE_VX | ALU_ADD | ARG2_IMM_8,
         8 => WRITE_VX | (instr & 0xF),
         0xA => WRITE_I | ALU_ARG2 | ARG2_IMM_12,
-        0xD => match(step) {
-            1 => FLAG_STAY,
-            2 => WRITE_SCREEN
-        }
+        0xD =>
+            step==1 ? FLAG_STAY :
+            step<count+1 ? WRITE_SCREEN | FLAG_STAY :
+                WRITE_SCREEN
     };
 
     output(cv);
@@ -230,5 +238,5 @@ mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C,      $A,$A) {
 
     //output(pc,v0,I);
     let should_clear = 0;
-    output(clk,vx,vy,mem_read_val,write_to_screen,should_clear,     +step,+mem_read_addr)
+    output(clk,vx,vy + (step-2),mem_read_val,write_to_screen,should_clear,     +pc,+step)
 }

@@ -53,7 +53,8 @@ impl IRModule {
                     update_color_for_arg(arg,WireColor::None, &mut out_color_counts);
                 },
                 IRNode::Output(_,arg) => {
-                    update_color_for_arg(arg , WireColor::None, &mut out_color_counts);
+                    // Force red outputs
+                    update_color_for_arg(arg , WireColor::Green, &mut out_color_counts);
                 },
                 IRNode::MultiDriver(_) => (), // use colors determined by downstream nodes
                 _ => panic!("Node {:?} is not supported at this stage.",node)
