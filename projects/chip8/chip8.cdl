@@ -40,6 +40,7 @@ const MASK_WRITE = 0xF0000;
     const WRITE_PUSH    = 0x50000; // write pc(+2?) to stack, sp++
     const WRITE_POP     = 0x60000; // sp--
     const WRITE_SCREEN  = 0x70000;
+    const WRITE_CLS     = 0x80000;
 
 const FLAG_STAY = 0x100000;
 
@@ -88,25 +89,39 @@ mod rom(addr) {
 
 mod rom(addr) {
     output(match(addr) {
-        0 => 0xA0, 1 => 0x0A, // I = 010
-        2 => 0x60, 3 => 0x08, // V0 = 3
-        4 => 0x61, 5 => 0x00, // V1 = 3
-        6 => 0xD0, 7 => 0x18, // Draw @ (V0,V1)
-        8 => 0x10, 9 => 0x00, // goto 000
-        10 => 0x7e,     // sprite
-        11 => 0x81,     // sprite
-        12 => 0xa5,     // sprite
-        13 => 0xa5,     // sprite
-        14 => 0x81,     // sprite
-        15 => 0xbd,     // sprite
-        16 => 0x81,     // sprite
-        17 => 0x7e,     // sprite
+        0 => 0xA0, 1 => 20, // I = 20
+        2 => 0x61, 3 => 0x00, // V1 = 0
+
+        4 => 0x00, 5 => 0xE0, // cls
+
+        6 => 0x60, 7 => 1, // V0 = 1
+        8 => 0xD0, 9 => 0x18, // Draw @ (V0,V1)
+
+        10 => 0x60, 11 => 10, // V0 = 10
+        12 => 0xD0, 13 => 0x18, // Draw @ (V0,V1)
+
+        14 => 0x60, 15 => 19, // V0 = 19
+        16 => 0xD0, 17 => 0x18, // Draw @ (V0,V1)
+
+        18 => 0x10, 19 => 0x04, // goto 04
+
+        20 => 0x7e,     // sprite
+        21 => 0x81,     // sprite
+        22 => 0xa5,     // sprite
+        23 => 0xa5,     // sprite
+        24 => 0x81,     // sprite
+        25 => 0xbd,     // sprite
+        26 => 0x81,     // sprite
+        27 => 0x7e,     // sprite
     });
 }
 
 mod decoder(instr,step) {
     let count = instr & 0xF;
     let cv = step < 1 ? FLAG_STAY : match(instr >> 12) {
+        0 => match(instr) {
+            0x00E0 => WRITE_CLS
+        },
         1 => PC_GOTO | ARG2_IMM_12,
         6 => WRITE_VX | ARG2_IMM_8,
         7 => WRITE_VX | ALU_ADD | ARG2_IMM_8,
@@ -218,6 +233,7 @@ mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C,      $A,$A) {
     let write_to_vx = write_select == WRITE_VX;
     let write_to_i = write_select == WRITE_I;
     let write_to_screen = write_select == WRITE_SCREEN;
+    let clear_screen = write_select == WRITE_CLS;
 
     let x = (instr >> 8) & 0xF;
     let y = (instr >> 4) & 0xF;
@@ -236,7 +252,5 @@ mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C,      $A,$A) {
         ALU_ADD => arg1 + arg2,
     };
 
-    //output(pc,v0,I);
-    let should_clear = 0;
-    output(clk,vx,vy + (step-2),mem_read_val,write_to_screen,should_clear,     +pc,+step)
+    output(clk,vx,vy + (step-2),mem_read_val,write_to_screen,clear_screen,     +pc,+step)
 }
