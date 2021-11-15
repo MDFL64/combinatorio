@@ -97,10 +97,10 @@ mod rom(addr) {
         6 => 0x60, 7 => 1, // V0 = 1
         8 => 0xD0, 9 => 0x18, // Draw @ (V0,V1)
 
-        10 => 0x60, 11 => 10, // V0 = 10
+        10 => 0x60, 11 => 8, // V0 = 10
         12 => 0xD0, 13 => 0x18, // Draw @ (V0,V1)
 
-        14 => 0x60, 15 => 19, // V0 = 19
+        14 => 0x60, 15 => 15, // V0 = 19
         16 => 0xD0, 17 => 0x18, // Draw @ (V0,V1)
 
         18 => 0x10, 19 => 0x04, // goto 04
@@ -196,7 +196,7 @@ mod value_registers(x, y, write, write_val, clk) {
     output(+res_x,+res_y,V0);
 }
 
-mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C,      $A,$A) {
+mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C) {
     let clk = clock(30);
 
     let next_step = advance_instr ? 0 : step+1;
@@ -252,5 +252,5 @@ mod main(reset) -> ($DOT,$X,$Y,$D,$W,$C,      $A,$A) {
         ALU_ADD => arg1 + arg2,
     };
 
-    output(clk,vx,vy + (step-2),mem_read_val,write_to_screen,clear_screen,     +pc,+step)
+    output(clk,vx,vy + (step-2),mem_read_val,write_to_screen,clear_screen)
 }
