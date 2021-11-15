@@ -93,6 +93,10 @@ impl NodeList {
         return &self.nodes[index];
     }
 
+    pub fn get_mut(&mut self, index: usize) -> &mut IRNode {
+        return &mut self.nodes[index];
+    }
+
     pub fn get_debug(&self, index: usize) -> &str {
         return &self.debug_names[index];
     }

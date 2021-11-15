@@ -14,9 +14,10 @@ impl IRModule {
     pub fn select_symbols(&mut self) {
         print!("Symbol selection... ");
 
+        // Set up symbol vector.
+        self.out_symbols.resize(self.nodes.len(),0);
+
         let mut constraints: Vec<SymbolConstraint> = Vec::new();
-        //println!("!! {:?}",self.arg_types);
-        //println!("!! {:?}",self.ret_types);
 
         for (out_i,node) in self.nodes.iter().enumerate() {
             match node {
@@ -28,10 +29,9 @@ impl IRModule {
                 IRNode::Output(n,arg) => {
                     if let Some(ret_types) = &self.ret_types {
                         if let Some(sym) = ret_types[*n as usize] {
+                            constraints.push(SymbolConstraint::EqualSymbol(out_i as u32,sym));
                             if let IRArg::Link(arg_i,_) = arg {
                                 constraints.push(SymbolConstraint::EqualSymbol(*arg_i,sym));
-                            } else {
-                                constraints.push(SymbolConstraint::EqualSymbol(out_i as u32,sym));
                             }
                         }
                     }
@@ -79,8 +79,6 @@ impl IRModule {
             }
         }
 
-        // Set up symbol vector.
-        self.out_symbols.resize(self.nodes.len(),0);
         // A secondary vector that indicates a symbol is pinned and unable to be changed without violating a constraint.
         let mut pinned_symbols = Vec::new();
         pinned_symbols.resize(self.nodes.len(),false);
