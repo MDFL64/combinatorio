@@ -27,3 +27,25 @@ mod gpu_left(clk: $DOT,x: $X,y: $Y,data: $D,write: $W,clear: $C,y_start) -> ($IN
     let collision = ((c0|c1) | (c2|c3)) | ((c4|c5) | (c6|c7));
     output(r0,r1,r2,r3,r4,r5,r6,r7,collision);
 }
+
+mod gpu_right(clk: $DOT,x: $X,y: $Y,data: $D,write: $W,clear: $C,y_start) -> ($INFO,$INFO,$INFO,$INFO,$INFO,$INFO,$INFO,$INFO,$C) {
+    let x_in_range = x > 24;
+    let local_x = x - 32;
+    let local_y = y - +y_start;
+    let local_data = x_in_range ? (
+        (local_x <= 24) ? (data << (24-local_x)) : (data >> (local_x-24))
+    ) : 0;
+
+    let (r0,c0) = gpu_slice(0,    clk,local_y,local_data,write,clear);
+    let (r1,c1) = gpu_slice(1,    clk,local_y,local_data,write,clear);
+    let (r2,c2) = gpu_slice(2,    clk,local_y,local_data,write,clear);
+    let (r3,c3) = gpu_slice(3,    clk,local_y,local_data,write,clear);
+    let (r4,c4) = gpu_slice(4,    clk,local_y,local_data,write,clear);
+    let (r5,c5) = gpu_slice(5,    clk,local_y,local_data,write,clear);
+    let (r6,c6) = gpu_slice(6,    clk,local_y,local_data,write,clear);
+    let (r7,c7) = gpu_slice(7,    clk,local_y,local_data,write,clear);
+
+    // NOTE: This is pretty gross, if the compiler ever supports merging signals, this is a good place to start.
+    let collision = ((c0|c1) | (c2|c3)) | ((c4|c5) | (c6|c7));
+    output(r0,r1,r2,r3,r4,r5,r6,r7,collision);
+}
