@@ -12,6 +12,8 @@ mod disjoint_set;
 mod symbols;
 mod assets;
 
+mod rom_generator;
+
 #[derive(CmdParser)]
 #[clap(version = "1.0.0", author = "cogg <adam@cogg.rocks>")]
 struct CmdOptions {
@@ -29,7 +31,10 @@ struct CmdOptions {
     no_fold: bool,
     #[clap(long)]
     /// Disable pruning unused combinators.
-    no_prune: bool
+    no_prune: bool,
+
+    #[clap(long)]
+    rom_offset: Option<u32>
 }
 
 #[derive(Debug)]
@@ -64,9 +69,15 @@ fn main() {
         ir::build_ir(prelude_parsed, settings.clone(), &mut modules, &mut constants);
     }
 
+    let source = if let Some(rom_offset) = options.rom_offset {
+        let bytes = std::fs::read(options.filename).expect("failed to read file");
+        crate::rom_generator::make_rom(&bytes,rom_offset)
+    } else {
+        std::fs::read_to_string(options.filename).expect("failed to read file")
+    };
+
     // Load main source file
     {
-        let source = std::fs::read_to_string(options.filename).expect("failed to read file");
         let parse_results = crate::parser::parse(&source);
         ir::build_ir(parse_results, settings.clone(), &mut modules, &mut constants);
     }
