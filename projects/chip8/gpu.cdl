@@ -35,10 +35,24 @@ mod gpu_left_2(clk: $DOT,x: $X,y: $Y,data: $D,write: $W,clear: $C,current: $INFO
         (local_x <= 24) ? (data << (24-local_x)) : (data >> (local_x-24))
     ) : 0;
 
-    let write_out = (clk & (write & x_in_range)) ? +y : -1;
+    let write_y = (clk & (write & x_in_range)) ? +y : -1;
     let collision = local_data & current;
 
-    output(+y,write_out,local_data ^ current,collision);
+    let clear_state = cell(clk,1,+new_clear_state);
+    let new_clear_state = match(clear_state) {
+        0 => clear ? 1 : 0,
+        // clear runs for two cycles,
+        // which should be safe considering all instructions currently take at least this long
+        1 => 2,
+        2 => 0
+    };
+
+    let clear_y = clear_y+1;
+
+    output(+y,
+        clear_state == 0 ? write_y : clear_y & 31,
+        +(clear_state == 0 ? local_data ^ current : 0),
+    collision);
 }
 
 mod gpu_right(clk: $DOT,x: $X,y: $Y,data: $D,write: $W,clear: $C,y_start) -> ($INFO,$INFO,$INFO,$INFO,$INFO,$INFO,$INFO,$INFO,$C) {
